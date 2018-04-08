@@ -1,0 +1,146 @@
+\documentclass[a4paper,11pt]{report}
+
+\usepackage{newunicodechar}
+\usepackage{xspace}
+\usepackage[francais]{babel}
+\renewcommand{\contentsname}{Sommaire}
+\usepackage[T1,OT1]{fontenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
+\usepackage{amsopn,amssymb,amsmath}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{blindtext}
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{color}
+\usepackage[colorlinks=false,hidelinks]{hyperref}
+\usepackage{needspace}
+\usepackage{pdfpages}
+\usepackage{easy-todo}
+\usepackage{lipsum}
+\usepackage{natbib}
+
+%--- custom ---
+\newcommand{\solver}{GLPK }
+
+
+\newcommand{\lang}[1]{\emph{#1}}
+\newcommand{\er}{\textsuperscript{er} }
+\newcommand{\e}{\textsuperscript{e} }
+
+\newcommand{\bin}{\in\{0,1\}}
+\newcommand{\real}{\in \mathbb{R}^+}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
+\DeclareMathOperator{\xor}{XOR}
+
+% --- sectionning ---
+\makeatletter
+\renewcommand\@chapapp{Partie}
+
+\newcommand\chapterwithsubtitle[2]{
+  \chapter[#1: {\itshape#2}]{#1\\[2ex]\Large\itshape#2}
+}
+
+\def\@makechapterhead#1{%
+  \vspace*{30\p@}%
+  {\parindent \z@ \raggedright \normalfont
+    \ifnum \c@secnumdepth >\m@ne
+        \LARGE\bfseries\thechapter\quad
+        %\vskip 20\p@
+    \fi
+    \interlinepenalty\@M
+    \huge \bfseries #1
+    %\vskip 40\p@
+  }}
+\makeatother
+\setcounter{tocdepth}{2}
+
+\makeatletter
+\renewcommand{\todoii}[2]{
+\ifthenelse {\equal {\@todoobeyfinal }{true}}{\ifoptionfinal {\todoenable {false}}{\todoenable {true}}}{}%
+\ifthenelse {\equal {\@todoenable }{true}}{%
+	\refstepcounter{todos}\noindent{\todocolor{{To do \thetodos{}. #1}}}%
+	\addcontentsline {lod}{todos}{\protect {\thetodos . }#2}}{}}%
+\makeatother
+
+% --- meta data ---
+\title{Projet INFO-F-524}
+\author{
+	Antoine Passemiers \\
+	Cédric Simar
+}
+
+% --- spec chars ---
+\newunicodechar{’}{'}
+
+
+\begin{document}
+
+\renewcommand\bibname{References}
+\renewcommand{\refname}{References}
+\makeatletter
+\renewcommand\@biblabel[1]{#1.  }
+\makeatother
+
+\begin{titlepage}
+	\centering
+	{\scshape\LARGE Université Libre de Bruxelles\par}
+	\vfill
+	{\LARGE\bfseries INFO-F-524 \\ Optimisation continue \par
+		\vspace{3ex}}
+	{\itshape\Large Stochastic Unit Commitment \par}
+	\vfill
+	\makeatletter
+	{\large \@author\par}
+	\vfill
+	\@date\par
+	\makeatother
+\end{titlepage}
+
+\tableofcontents
+
+\setlength\parskip{0.5ex plus1ex minus.5ex}
+
+
+\newpage
+
+\input{chapters/implementation}
+\input{chapters/task1}
+\input{chapters/task2}
+\input{chapters/task3}
+\input{chapters/task4}
+\input{chapters/task5}
+
+\newpage
+
+\chapter*{Annexes}
+
+
+\listoftodos
+
+\end{document}

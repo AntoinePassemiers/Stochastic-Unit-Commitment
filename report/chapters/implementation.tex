@@ -1,0 +1,29 @@
+\chapter{Considérations générales sur l'implémentation}
+\vspace*{1.2cm}
+
+Dans le cadre de ce projet, nous avons fait le choix d'utiliser PuLP en tant qu'interface entre
+\solver et Python. PuLP est une bibliothèque de modélisation de programmes linéaires et permet
+la résolution de ces derniers au moyen de solveurs tels que GLPK, CBC, CLP ou autre.
+L'API est stable et largement utilisée, mais contrairement à celle de la bibliothèque CVXPY,
+elle ne permet pas de manipuler des variables ou des contraintes de manière vectorisée à l'aide
+de matrices ou d'autres structures de données dédiées.
+
+L'implémentation d'une formulation peut de fait devenir fastidieuse et les erreurs difficiles à
+retracer lorsque l'on vient à définir des variables 
+
+
+
+\section{Extension de PuLP}
+
+\begin{lstlisting}[language=Python]
+    # Définition du groupe de contraintes 2.27
+    #    p[g, s, t] - p[g, s, t-1] <= R_plus[g]
+    # Ajout des contraintes par fancy indexing
+    problem += (np.swapaxes(p[:, :, 1:] - p[:, :, :-1], 0, 2) <= R_plus)
+
+    # Ajout séquentiel des contraintes
+    for g in range(G):
+        for s in range(S):
+            for t in range(1, T):
+                problem += (p[g, s, t] - p[g, s, t-1] <= R_plus[g])
+\end{lstlisting}
