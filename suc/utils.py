@@ -74,24 +74,27 @@ class LpVarArray(np.ndarray):
         raise OperationNotSupportedError("Operation not supported for pulp.LpVariable")
 
 
-class ArrayFriendlyLpProblem(pulp.LpProblem):
+class ArrayCompatibleLpProblem(pulp.LpProblem):
 
     def __init__(self, *args, **kwargs):
         pulp.LpProblem.__init__(self, *args, **kwargs)
+    
+    def __add__(self, other):
+        return self.__iadd__(other)
     
     def __iadd__(self, other):
         if isinstance(other, np.ndarray):
             result = self
             for index in np.ndindex(*other.shape):
-                result = super(ArrayFriendlyLpProblem, self).__iadd__(other[index])
+                result = super(ArrayCompatibleLpProblem, self).__iadd__(other[index])
         else:
-            result = super(ArrayFriendlyLpProblem, self).__iadd__(other)
+            result = super(ArrayCompatibleLpProblem, self).__iadd__(other)
         return result
     
 
 if __name__ == "__main__":
 
-    prob = ArrayFriendlyLpProblem("The fancy indexing problem", pulp.LpMinimize)
+    prob = ArrayCompatibleLpProblem("The fancy indexing problem", pulp.LpMinimize)
 
     X = lp_array("X", (5, 5), "Continuous", up_bound=80)
     Y = lp_array("Y", (7, 5, 5), "Continuous", up_bound=500)
@@ -106,7 +109,6 @@ if __name__ == "__main__":
     prob += (4*X[:, :] + 9*Y[3, :, :] <= 2*Y[2, :, :] + 7)
     prob += (X.sum() == 8)
 
-    print(list(prob.constraints))
     for name in prob.constraints:
         print(prob.constraints[name])
 
