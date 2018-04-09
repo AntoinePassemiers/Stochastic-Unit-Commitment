@@ -30,7 +30,7 @@ def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
         var_name = name + str(tuple(index)).replace(" ", "")
         variables[index] = pulp.LpVariable(
             var_name, lowBound=low_bound, upBound=up_bound, cat=var_type)
-    return LpVarArray(variables)
+    return LpVarArray(variables, info={"var_type" : var_type})
     
 
 class LpVarArray(np.ndarray):
@@ -38,6 +38,8 @@ class LpVarArray(np.ndarray):
     def __new__(cls, input_array, info=None):
         obj = np.asarray(input_array).view(cls)
         obj.info = info
+        obj.var_type = info["var_type"]
+        assert(obj.var_type in ["Continuous", "Integer"])
         return obj
 
     def __array_finalize__(self, obj):
@@ -73,6 +75,18 @@ class LpVarArray(np.ndarray):
         class OperationNotSupportedError(Exception): pass
         raise OperationNotSupportedError("Operation not supported for pulp.LpVariable")
 
+    def set_var_values(self, values):
+        values = np.asarray(values)
+        for index, variable in np.ndenumerate(self):
+            variable.varValue = values[index]
+    
+    def get_var_values(self):
+        dtype = np.float if (self.var_type == "Continuous") else np.int
+        values = np.empty(self.shape, dtype=dtype)
+        for index, variable in np.ndenumerate(self):
+            values[index] = variable.varValue
+        return values
+
 
 class ArrayCompatibleLpProblem(pulp.LpProblem):
 
@@ -91,9 +105,16 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
             result = super(ArrayCompatibleLpProblem, self).__iadd__(other)
         return result
     
+    def constraints_satisfied(self):
+        for name in self.constraints:
+            constraint = self.constraints[name]
+            if not constraint.valid():
+                return False
+        return True
+    
 
 if __name__ == "__main__":
-
+    """
     prob = ArrayCompatibleLpProblem("The fancy indexing problem", pulp.LpMinimize)
 
     X = lp_array("X", (5, 5), "Continuous", up_bound=80)
@@ -113,3 +134,15 @@ if __name__ == "__main__":
         print(prob.constraints[name])
 
     #print(sum(X))
+    """
+
+    X = lp_array("X", (2, 2), "Continuous")
+    X.set_var_values([[0, 1], [9, 3]])
+
+    problem = ArrayCompatibleLpProblem()
+    problem += (X >= 5)
+    print(problem.constraints_satisfied())
+
+    problem = ArrayCompatibleLpProblem()
+    problem += (X >= 0)
+    print(problem.constraints_satisfied())

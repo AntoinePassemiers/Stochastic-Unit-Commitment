@@ -70,3 +70,9 @@ class SUPInstance:
 
         # GAMMA[j, l] = Polarity of line l in import group j
         self.GAMMA = np.empty((self.n_import_groups, self.n_lines), dtype=np.float)
+
+    def get_constants(self):
+        return (self.PI, self.K, self.S, self.C, self.D, self.P_plus, self.P_minus,
+            self.R_plus, self.R_minus, self.UT, self.DT, self.T_req, self.F_req, 
+            self.B, self.TC, self.FR, self.IC, self.GAMMA)
+

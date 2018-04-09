@@ -1,5 +1,7 @@
 *.pyc
 *.pyd
 
+solution.txt
+
 build/
 dist/
