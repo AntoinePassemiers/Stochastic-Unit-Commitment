@@ -112,6 +112,35 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
                 return False
         return True
     
+    def get_constraints(self):
+        """ Get list of constraints in a non-PuLP format. Each constraint
+        is a tuple containing:
+
+        var_ids: list
+            The (integer) identifiers of the variables involved in the constraint
+        values: list
+            The values corresponding to the variables in var_ids
+        sense: int
+            Inequality sense, where the inequality is of the form Sum_i coef_i*var_i sense intercept.
+            1 stands for ">=" and -1 stands for "<=".
+        intercept: float, int
+            Constant right-hand side of the inequality
+        """
+        all_var_ids = {var.name: i for i, var in enumerate(self.variables())}
+        constraints = list()
+        for name in self.constraints:
+            c = self.constraints[name]
+            sense = c.sense
+            intercept = c.getLb() if c.sense == 1 else c.getUb()
+            var_ids = [all_var_ids[var.name] for var in c.keys()]
+            values = list(c.values())
+            constraints.append((var_ids, values, sense, intercept))
+            assert(sense in [1, -1] and intercept is not None)
+        return constraints
+    
+    def get_variables(self):
+        return self.variables()
+    
 
 if __name__ == "__main__":
     """
@@ -146,3 +175,9 @@ if __name__ == "__main__":
     problem = ArrayCompatibleLpProblem()
     problem += (X >= 0)
     print(problem.constraints_satisfied())
+
+    X.set_var_values([[-8, 1], [9, 3]])
+    print(problem.constraints_satisfied())
+
+    print(problem.get_constraints())
+    print(problem.variables())
