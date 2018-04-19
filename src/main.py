@@ -8,6 +8,13 @@ from utils import lp_array, ArrayCompatibleLpProblem
 import numpy as np
 import pulp
 
+try:
+    import pyximport
+    pyximport.install(setup_args={'include_dirs': np.get_include()})
+    import heuristics
+except ImportError:
+    print("You definitely should install Cython.")
+
 
 
 def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
@@ -108,3 +115,6 @@ if __name__ == "__main__":
         f.write("Value of the objective: %f\n" % problem.objective.value())
         for variable in problem.variables():
             f.write("%s = %s\n" % (str(variable.name), str(variable.varValue)))
+
+    solution = problem.get_variables().get_var_values()
+    constraints = problem.get_constraints_as_tuples()

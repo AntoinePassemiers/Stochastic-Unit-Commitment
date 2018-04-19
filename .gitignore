@@ -5,3 +5,4 @@ solution.txt
 
 build/
 dist/
+__pycache__/

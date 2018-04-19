@@ -19,7 +19,7 @@ def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
     shape: tuple
         Dimensionality of the new array
     var_type: str
-        Type of PuLP variables (either "Continuous" or "Integer")
+        Type of PuLP variables (either "Mixed", "Continuous" or "Integer")
     low_bound: float, int (optional)
         Lower bound for all variables in the new array
     up_bound: float, int (optional)
@@ -39,7 +39,7 @@ class LpVarArray(np.ndarray):
         obj = np.asarray(input_array).view(cls)
         obj.info = info
         obj.var_type = info["var_type"]
-        assert(obj.var_type in ["Continuous", "Integer"])
+        assert(obj.var_type in ["Mixed", "Continuous", "Integer"])
         return obj
 
     def __array_finalize__(self, obj):
@@ -81,7 +81,7 @@ class LpVarArray(np.ndarray):
             variable.varValue = values[index]
     
     def get_var_values(self):
-        dtype = np.float if (self.var_type == "Continuous") else np.int
+        dtype = np.float if (self.var_type in ["Continuous", "Mixed"]) else np.int
         values = np.empty(self.shape, dtype=dtype)
         for index, variable in np.ndenumerate(self):
             values[index] = variable.varValue
@@ -105,14 +105,15 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
             result = super(ArrayCompatibleLpProblem, self).__iadd__(other)
         return result
     
-    def constraints_satisfied(self):
+    def constraints_violated(self):
+        n_violated = 0
         for name in self.constraints:
             constraint = self.constraints[name]
             if not constraint.valid():
-                return False
-        return True
+                n_violated += 1
+        return n_violated
     
-    def get_constraints(self):
+    def get_constraints_as_tuples(self):
         """ Get list of constraints in a non-PuLP format. Each constraint
         is a tuple containing:
 
@@ -131,7 +132,7 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
         for name in self.constraints:
             c = self.constraints[name]
             sense = c.sense
-            intercept = c.getLb() if c.sense == 1 else c.getUb()
+            intercept = c.getLb() if sense == 1 else c.getUb()
             var_ids = [all_var_ids[var.name] for var in c.keys()]
             values = list(c.values())
             constraints.append((var_ids, values, sense, intercept))
@@ -139,7 +140,7 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
         return constraints
     
     def get_variables(self):
-        return self.variables()
+        return LpVarArray(self.variables(), info={"var_type" : "Mixed"})
     
 
 if __name__ == "__main__":
@@ -167,17 +168,12 @@ if __name__ == "__main__":
 
     X = lp_array("X", (2, 2), "Continuous")
     X.set_var_values([[0, 1], [9, 3]])
+    Y = lp_array("Y", (2, 2), "Continuous")
+    Y.set_var_values([[7, -8], [2, -3]])
 
     problem = ArrayCompatibleLpProblem()
-    problem += (X >= 5)
-    print(problem.constraints_satisfied())
+    problem += (Y + X >= 5)
+    print(problem.constraints_violated())
 
-    problem = ArrayCompatibleLpProblem()
-    problem += (X >= 0)
-    print(problem.constraints_satisfied())
-
-    X.set_var_values([[-8, 1], [9, 3]])
-    print(problem.constraints_satisfied())
-
-    print(problem.get_constraints())
+    print(problem.get_constraints_as_tuples())
     print(problem.variables())
