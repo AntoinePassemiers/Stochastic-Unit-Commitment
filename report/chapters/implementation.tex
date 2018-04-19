@@ -9,21 +9,40 @@ elle ne permet pas de manipuler des variables ou des contraintes de manière vec
 de matrices ou d'autres structures de données dédiées.
 
 L'implémentation d'une formulation peut de fait devenir fastidieuse et les erreurs difficiles à
-retracer lorsque l'on vient à définir des variables 
-
-
+retracer lorsque l'on vient à définir des variables multi-indices (implémentables sous forme
+de matrices de variables) et indicer ces dernières au sein de boucles. En effet l'absence d'erreur du programme
+n'implique pas que les contraintes ont été correctement implémentées et toutes ajoutées au modèle.
+Numpy apporte une sécurité supplémentaire relative à la dimensionalité: si par exemple un produit matriciel est effectué
+entre une matrice de constantes et un vecteur de variables PuLP et que les dimensions sont incompatibles,
+une exception est automatiquement levée. Ceci tient également pour la construction de contraintes où le membre de gauche ne possède pas
+la même dimensionalité que le membre de droite, pour la somme de variables, etc.
 
 \section{Extension de PuLP}
 
-\begin{lstlisting}[language=Python]
-    # Définition du groupe de contraintes 2.27
-    #    p[g, s, t] - p[g, s, t-1] <= R_plus[g]
-    # Ajout des contraintes par fancy indexing
-    problem += (np.swapaxes(p[:, :, 1:] - p[:, :, :-1], 0, 2) <= R_plus)
+Pour les raisons que nous venons de donner, nous avons étendu Numpy afin de rendre l'indiçage 
+fantaisiste ("fancy indexing") comptatible avec les variables PuLP. Pour ce faire, nous avons
+simplement sous-classé les tableaux \textit{numpy.ndarray} et notamment réécrit les méthodes de comparaison.
+La classe fille s'appelle \textit{LpVarArray}. Nous avons entre autres veillé à ce que:
+\begin{itemize}
+  \item Une combinaison linéaire d'objets \textit{LpVarArray} de dimensions compatibles résultent en un
+  un nouvel objet \textit{LpVarArray}.
+  \item Une comparaison entre deux \textit{LpVarArray} donne un tableau de contraintes PuLP.
+  \item Les tableaux de contraintes PuLP puissent être ajoutés à une instance de problème.
+  Pour ce faire, nous avons sous-classé \textit{pulp.LpProblem} en \textit{ArrayCompatibleLpProblem}
+  et ajouté les méthodes requises.
+\end{itemize}
 
+Motivons nos choix d'implémentation par un exemple concret d'utilisation de ces nouvelles classes.
+Supposons que $p$ soit un \textit{LpVarArray} tridimensionnel et $R_plus$ un \textit{numpy.ndarray} contenant 
+des constantes. La modélisation peut donc se faire selon deux styles, et nous avons opté pour la seconde
+version:
+\begin{lstlisting}[language=Python]
     # Ajout séquentiel des contraintes
     for g in range(G):
         for s in range(S):
             for t in range(1, T):
                 problem += (p[g, s, t] - p[g, s, t-1] <= R_plus[g])
+
+    # Ajout des contraintes par fancy indexing
+    problem += (np.swapaxes(p[:, :, 1:] - p[:, :, :-1], 0, 2) <= R_plus)
 \end{lstlisting}

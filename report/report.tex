@@ -7,7 +7,8 @@
 \usepackage[T1,OT1]{fontenc}
 \usepackage{newtxtext,newtxmath}
 \usepackage[top=1in, bottom=1in, left=1in, right=1in]{geometry}
-\usepackage{amsopn,amssymb,amsmath}
+\usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage{blindtext}
@@ -22,7 +23,7 @@
 \usepackage{natbib}
 
 %--- custom ---
-\newcommand{\solver}{GLPK }
+\newcommand{\solver}{Cbc }
 
 
 \newcommand{\lang}[1]{\emph{#1}}
@@ -88,6 +89,12 @@
 	\addcontentsline {lod}{todos}{\protect {\thetodos . }#2}}{}}%
 \makeatother
 
+\renewcommand\bibname{Références}
+\renewcommand{\refname}{Références}
+\makeatletter
+\renewcommand\@biblabel[1]{#1.  }
+\makeatother
+
 % --- meta data ---
 \title{Projet INFO-F-524}
 \author{
@@ -129,6 +136,7 @@
 
 \newpage
 
+\input{chapters/introduction}
 \input{chapters/implementation}
 \input{chapters/task1}
 \input{chapters/task2}
@@ -136,9 +144,18 @@
 \input{chapters/task4}
 \input{chapters/task5}
 
+TODO
+\citep{Papavasiliou12couplingrenewable}
+\citep{Papavasiliou2013}
+\citep{mitchell2011pulp}
+
 \newpage
 
 \chapter*{Annexes}
+
+
+\bibliographystyle{apalike}
+\bibliography{report}
 
 
 \listoftodos
