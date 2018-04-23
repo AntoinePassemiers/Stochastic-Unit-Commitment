@@ -16,7 +16,6 @@ except ImportError:
     print("You definitely should install Cython.")
 
 
-
 def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
     G = Gs + Gf
 
