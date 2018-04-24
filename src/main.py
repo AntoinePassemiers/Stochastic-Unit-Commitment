@@ -15,30 +15,33 @@ try:
 except ImportError:
     print("You definitely should install Cython.")
 
+if not pulp.solvers.GLPK_CMD().available():
+    print("You definitely should install GLPK.")
+
 
 def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
     G = len(Gs) + len(Gf) # Number of generators
 
     # u[g, s, t] = Commitment of generator g in scenario s, period t
-    u = lp_array("U", (G, S, T), "Integer", 0, 1)
+    u = lp_array("U", (G, S, T), var_type, 0, 1)
 
     # v[g, s, t] = Startup of generator g in scenario s, period t
-    v = lp_array("V", (G, n_scenarios, T), var_type, 0, 1)
+    v = lp_array("V", (G, n_scenarios, T), "Continuous", 0, 1)
 
     # p[g, s, t] = Production of generator g in scenario s, period t
-    p = lp_array("P", (G, n_scenarios, T), var_type, low_bound=0)
+    p = lp_array("P", (G, n_scenarios, T), "Continuous", low_bound=0)
 
     # theta[n, s, t] = Phase angle at bus n in scenario s, period t
-    theta = lp_array("THETA", (N, n_scenarios, T), var_type)
+    theta = lp_array("THETA", (N, n_scenarios, T), "Continuous")
 
     # w[g, t] = Commitment of slow generator g in period t
-    w = lp_array("W", (len(Gs), T), "Integer", 0, 1)
+    w = lp_array("W", (len(Gs), T), var_type, 0, 1)
 
     # z[g, t] = Startup of slow generator g in period t
-    z = lp_array("Z", (len(Gs), T), var_type, low_bound=0)
+    z = lp_array("Z", (len(Gs), T), "Continuous", low_bound=0)
 
     # e[l, s, t] = Power flow on line l in scenario s, period t
-    e = lp_array("E", (L, n_scenarios, T), var_type)
+    e = lp_array("E", (L, n_scenarios, T), "Continuous")
 
     return u, v, p, theta, w, z, e
 
@@ -195,7 +198,9 @@ if __name__ == "__main__":
 
 
     print("Solving problem...")
-    problem.solve(maxSeconds=10)
+    time_limit = 30 * 60 # 30 minutes
+    solver = pulp.solvers.GLPK_CMD(options=["--tmlim", str(time_limit)])
+    problem.solve(solver)
     print("Problem status: %i" % problem.status)
     if problem.status == pulp.constants.LpStatusOptimal:
         print("Solution is optimal.")
