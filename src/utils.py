@@ -123,7 +123,7 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
             The values corresponding to the variables in var_ids
         sense: int
             Inequality sense, where the inequality is of the form Sum_i coef_i*var_i sense intercept.
-            1 stands for ">=" and -1 stands for "<=".
+            1 stands for ">=", -1 for "<=", and 0 for"==".
         intercept: float, int
             Constant right-hand side of the inequality
         """
@@ -136,7 +136,7 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
             var_ids = [all_var_ids[var.name] for var in c.keys()]
             values = list(c.values())
             constraints.append((var_ids, values, sense, intercept))
-            assert(sense in [1, -1] and intercept is not None)
+            assert(sense in [1, 0, -1] and intercept is not None)
         return constraints
     
     def get_variables(self):

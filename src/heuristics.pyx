@@ -17,7 +17,7 @@ cdef struct constraint_t:
     cnp.int_t* var_ids  # Identifiers of the variables involved
     data_t*    values   # Coefficients of the variables
     data_t     rhs      # Right-hand side of the constraint (intercept)
-    int        sense    # Sense is "lhs >= rhs" if 1 else "lhs <= rhs"
+    int        sense    # Either 1, 0 or -1
 
 
 cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
@@ -67,6 +67,7 @@ cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution) nogi
     for i in range(constraint.n_values):
         lhs += constraint.values[i] * \
             solution[constraint.var_ids[i]]
+    # TODO: case where sense is 0
     return not ((constraint.sense > 0) ^ (lhs >= constraint.rhs))
 
 

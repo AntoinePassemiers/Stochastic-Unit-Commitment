@@ -3,6 +3,8 @@
 
 solution.txt
 
+instances/
+
 build/
 dist/
 __pycache__/

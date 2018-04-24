@@ -8,6 +8,8 @@ import numpy as np
 class SUPInstance:
 
     def __init__(self, Gs, Gf, n_scenarios, n_periods, n_lines, n_nodes, n_import_groups):
+        self.Gs = Gs
+        self.Gf = Gf
         self.n_generators = len(Gs) + len(Gf)
         self.n_scenarios = n_scenarios
         self.n_periods = n_periods
@@ -75,6 +77,13 @@ class SUPInstance:
         # GAMMA[j, l] = Polarity of line l in import group j
         self.GAMMA = np.empty((self.n_import_groups, self.n_lines), dtype=np.float)
 
+    def get_sizes(self):
+        return (self.n_generators, self.n_scenarios, self.n_periods,
+            self.n_lines, self.n_nodes, self.n_import_groups)
+
+    def get_indices(self):
+        return (self.Gs, self.Gf, self.Gn, self.LIn, self.LOn, self.IG)
+
     def get_constants(self):
         return (self.PI, self.K, self.S, self.C, self.D, self.P_plus, self.P_minus,
             self.R_plus, self.R_minus, self.UT, self.DT, self.T_req, self.F_req, 
@@ -108,7 +117,6 @@ class SUPInstance:
     def check_if_provided(f):
         line = f.readline().replace("\n", "").rstrip()
         assert(line.strip()[0] == '#')
-        print(line)
         return not ("#no" in line.replace(" ", "").lower())
 
     @staticmethod
@@ -163,10 +171,3 @@ class SUPInstance:
                 instance.GAMMA[:] = SUPInstance.parse_n_data_lines(f, 1)[0]
 
             return instance
-
-
-if __name__ == "__main__":
-    
-    instance = SUPInstance.from_file("../instances/inst-20-24-10-0.txt")
-
-        
