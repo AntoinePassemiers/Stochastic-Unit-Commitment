@@ -133,8 +133,10 @@ class SUPInstance:
             L = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             N = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             Gn = SUPInstance.parse_n_data_lines(f, N, is_index=True)
-            LIn = SUPInstance.parse_n_data_lines(f, N, is_index=True)
-            LOn = SUPInstance.parse_n_data_lines(f, N, is_index=True)
+            LIn = [[el[0] for el in line] for line in \
+                SUPInstance.parse_n_data_lines(f, N, is_index=True)]
+            LOn = [[el[1] for el in line] for line in \
+                SUPInstance.parse_n_data_lines(f, N, is_index=True)]
             if SUPInstance.check_if_provided(f):
                 n_import_groups = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             else:

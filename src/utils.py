@@ -92,6 +92,7 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
 
     def __init__(self, *args, **kwargs):
         pulp.LpProblem.__init__(self, *args, **kwargs)
+        self.last_constraint_mat_shape = None
     
     def __add__(self, other):
         return self.__iadd__(other)
@@ -101,9 +102,17 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
             result = self
             for index in np.ndindex(*other.shape):
                 result = super(ArrayCompatibleLpProblem, self).__iadd__(other[index])
+            if len(tuple(other.shape)) == 0:
+                self.last_constraint_mat_shape = (1,)
+            else:
+                self.last_constraint_mat_shape = tuple(other.shape)
         else:
             result = super(ArrayCompatibleLpProblem, self).__iadd__(other)
+            self.last_constraint_mat_shape = (1,)
         return result
+    
+    def assert_shape(self, *args):
+        assert(tuple(args) == self.last_constraint_mat_shape)
     
     def constraints_violated(self):
         n_violated = 0

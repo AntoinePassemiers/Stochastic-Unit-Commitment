@@ -23,7 +23,7 @@ def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
     u = lp_array("U", (G, S, T), "Integer", 0, 1)
 
     # v[g, s, t] = Startup of generator g in scenario s, period t
-    v = lp_array("V", (G, n_scenarios, T), var_type, up_bound=1)
+    v = lp_array("V", (G, n_scenarios, T), var_type, 0, 1)
 
     # p[g, s, t] = Production of generator g in scenario s, period t
     p = lp_array("P", (G, n_scenarios, T), var_type, low_bound=0)
@@ -35,13 +35,7 @@ def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
     w = lp_array("W", (len(Gs), T), "Integer", 0, 1)
 
     # z[g, t] = Startup of slow generator g in period t
-    z = lp_array("Z", (len(Gs), T), var_type, 0, 1)
-
-    # s[g, t] = Slow reserve provided by generator
-    # TODO
-
-    # f[g, t] = Fast reserve provided by generator g in period t
-    # TODO
+    z = lp_array("Z", (len(Gs), T), var_type, low_bound=0)
 
     # e[l, s, t] = Power flow on line l in scenario s, period t
     e = lp_array("E", (L, n_scenarios, T), var_type)
@@ -55,7 +49,21 @@ if __name__ == "__main__":
     instance = SUPInstance.from_file("../instances/inst-20-24-10-0.txt")
     
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
+    n_generators, n_periods, n_lines, n_nodes = G, T, L, N
+
     (Gs, Gf, Gn, LIn, LOn, IG) = instance.get_indices()
+    
+    LI_indices = np.full((N, N), -1, dtype=np.int)
+    LO_indices = np.full((N, N), -1, dtype=np.int)
+    L_node_indices = list()
+    line_id = 0
+    for n in range(len(LIn)):
+        for k in LIn[n]:
+            LI_indices[n][k] = LO_indices[k][n] = line_id
+            L_node_indices.append((n, k))
+            line_id += 1
+    
+
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
 
@@ -75,16 +83,20 @@ if __name__ == "__main__":
 
     # Define constraints group 3.21
     #    Market-clearing constraint: uncertainty in demand 
-    #    and production of renewable resources
+    #    and production of renewable resources for each node
     #    sum_LIn e[l, s, t] + sum_g p[g, s, t] == D[n, s, t] + sum_LOn e[l, s, t]
-    #for n in range(N):
-    #    problem += (np.sum(e[LIn, :, :], axis=0) + np.sum(p[Gn[n], :, :], axis=0) == \
-    #        D[n, :, :] + np.sum(e[LOn, :, :], axis=0))
+    for n in range(N):
+        LIn_ids = LI_indices[n][LI_indices[n] != -1]
+        LOn_ids = LO_indices[n][LO_indices[n] != -1]
+        problem += (np.sum(e[LIn_ids, :, :], axis=0) + np.sum(p[Gn[n], :, :], axis=0) == \
+            D[n, :, :] + np.sum(e[LOn_ids, :, :], axis=0))
     
     # Define constraints group 3.22
     #    e[l, s, t] == B[l, s] * (theta[n, s, t] - theta[m, s, t])
-    #for l, (m, n) in enumerate(LIn + LOn):
-    #    problem += (e[l, :, :] == B[l, :] * (theta[n, s, t] - theta[m, s, t]))
+    for l in range(L):
+        n, m = L_node_indices[l][0], L_node_indices[l][1]
+        problem += (e[l, :, :] == B[l, :][..., np.newaxis] * \
+            (theta[n, :, :] - theta[m, :, :]))
 
     # Define constraints group 3.23
     #    e[l, s, t] <= TC[l]
@@ -112,15 +124,45 @@ if __name__ == "__main__":
     #    p[g, s, t-1] - p[g, s, t] <= R_minus[g]
     problem += (np.swapaxes(p[:, :, :-1] - p[:, :, 1:], 0, 2) <= R_minus)
 
-    # Define constraint group 3.29
+    # Define constraints group 3.29
     #    sum_{t-UT[g]+1}^t z[g, q] <= w[g, t]
     #    t >= UT[g]
     for g in range(len(Gs)):
-        Utg = int(UT[Gs[g]])
-        for t in range(Utg, T):
-            problem += (np.sum(z[g, t-Utg+1:t+1]) <= w[g, t])
+        UTg = int(UT[Gs[g]])
+        for t in range(UTg, T):
+            problem += (np.sum(z[g, t-UTg+1:t+1]) <= w[g, t])
 
-    # TODO: constraints groups 3.30 to 3.32
+    # Define constraints group 3.30
+    #    sum_{t+1}^{t+DT[g]} z[g, q] <= 1 - w[g, t]
+    #    t <= N - DT[g]
+    for g in range(len(Gs)):
+        DTg = int(DT[Gs[g]])
+        for t in range(0, N-DTg-1):
+            problem += (np.sum(z[g, t+1:t+DTg+1]) <= 1 + w[g, t])
+    
+    # Define contraints group 3.31
+    #    sum_{t-UT[g]+1}^t v[g, s, q] <= u[g, s, t]
+    #    t >= UT[g]
+    for g in range(len(Gf)):
+        UTg = int(UT[Gf[g]])
+        for t in range(UTg, T):
+            problem += (np.sum(v[Gf[g], :, t-UTg+1:t+1], axis=1) <= u[Gf[g], :, t])
+
+    # Define constraints group 3.32
+    #    sum_{t+1}^{t+DT[g]} v[g, s, q] <= 1 - u[g, s, t]
+    #    t <= N - DT[g]
+    for g in range(len(Gf)):
+        DTg = int(DT[Gs[g]])
+        for t in range(0, N-DTg-1):
+            problem += (np.sum(v[Gf[g], :, t+1:t+Dtg+1], axis=1) <= 1 - u[Gf[g], :, t])
+    
+    # Define constraints group 3.33
+    #    z[g, t] <= 1 for slow generators
+    problem += (z <= 1)
+
+    # Define constraints group 3.34
+    #    v[g, s, t] <= 1 for slow generators
+    #    Those constraints have been added during variables initialization
 
     # Define constraints group 3.35
     #    s[g, t] >= w[g, t] - w[g, t-1]
@@ -138,8 +180,22 @@ if __name__ == "__main__":
     #    PI[s] * v[g, s, t] == PI[s] * z[g, t]
     problem += (np.swapaxes(v, 0, 1)[:, Gs, :] == z)
 
+    # Define constraints group 3.39
+    #    For all generators:
+    #    p[g, s, t] >= 0
+    #    v[g, s, t] >= 0
+    #    u[g, s, t] in {0, 1}
+    #    Those constraints have been added during variables initialization
+
+    # Define constraints group 3.40
+    #    For slow generators:
+    #    z[g, t] >= 0
+    #    w[g, t] in {0, 1}
+    #    Those constraints have been added during variables initialization
+
+
     print("Solving problem...")
-    problem.solve()
+    problem.solve(maxSeconds=10)
     print("Problem status: %i" % problem.status)
     if problem.status == pulp.constants.LpStatusOptimal:
         print("Solution is optimal.")
