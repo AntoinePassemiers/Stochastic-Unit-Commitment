@@ -94,9 +94,6 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
         pulp.LpProblem.__init__(self, *args, **kwargs)
         self.last_constraint_mat_shape = None
     
-    def __add__(self, other):
-        return self.__iadd__(other)
-    
     def __iadd__(self, other):
         if isinstance(other, np.ndarray):
             result = self
@@ -114,11 +111,11 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
     def assert_shape(self, *args):
         assert(tuple(args) == self.last_constraint_mat_shape)
     
-    def constraints_violated(self):
+    def constraints_violated(self, eps=1e-04):
         n_violated = 0
         for name in self.constraints:
             constraint = self.constraints[name]
-            if not constraint.valid():
+            if not (constraint.valid() or abs(constraint.value()) < eps):
                 n_violated += 1
         return n_violated
     
@@ -136,7 +133,8 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
         intercept: float, int
             Constant right-hand side of the inequality
         """
-        all_var_ids = {var.name: i for i, var in enumerate(self.variables())}
+        variables = self.variables()
+        all_var_ids = {var.name: i for i, var in enumerate(variables)}
         constraints = list()
         for name in self.constraints:
             c = self.constraints[name]
@@ -175,14 +173,21 @@ if __name__ == "__main__":
     #print(sum(X))
     """
 
-    X = lp_array("X", (2, 2), "Continuous")
-    X.set_var_values([[0, 1], [9, 3]])
-    Y = lp_array("Y", (2, 2), "Continuous")
-    Y.set_var_values([[7, -8], [2, -3]])
+    x = pulp.LpVariable("x", lowBound=0, upBound=0.9, cat="Continuous")
 
-    problem = ArrayCompatibleLpProblem()
-    problem += (Y + X >= 5)
-    print(problem.constraints_violated())
+    problem = pulp.LpProblem("qskjd", pulp.LpMaximize)
 
-    print(problem.get_constraints_as_tuples())
-    print(problem.variables())
+    problem += 2*x
+
+    constraint = (0.5*x <= 0.1)
+    problem += constraint
+
+    problem.solve()
+
+    print(dir(constraint))
+
+    print(constraint.valid())
+
+    print(constraint.values())
+
+

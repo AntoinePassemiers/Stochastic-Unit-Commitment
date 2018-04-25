@@ -8,6 +8,7 @@ cnp.import_array()
 
 from libc.stdlib cimport malloc, calloc
 from libc.string cimport memcpy, memset
+cimport libc.math
 
 
 ctypedef cnp.float_t data_t
@@ -50,7 +51,7 @@ cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
     return constraint
 
 
-cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution) nogil:
+cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data_t eps) nogil:
     """
     Given a solution, check whether a constraint is satisfied.
 
@@ -61,19 +62,26 @@ cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution) nogi
     solution: data_t*
         Current solution to the problem. Its size is equal to the number
         of variables in the problem instance.
+    eps: data_t
+        Numerical precision of the solution
     """
     cdef data_t lhs = 0
     cdef int i
     for i in range(constraint.n_values):
         lhs += constraint.values[i] * \
             solution[constraint.var_ids[i]]
-    # TODO: case where sense is 0
-    return not ((constraint.sense > 0) ^ (lhs >= constraint.rhs))
+    if constraint.sense < 0:
+        return lhs <= constraint.rhs + eps
+    elif constraint.sense > 0:
+        return lhs >= constraint.rhs - eps
+    else:
+        return (lhs == constraint.rhs) or (libc.math.fabs(lhs - constraint.rhs) < eps)
 
 
 cdef int __constraints_violated(data_t* solution,
                                 constraint_t* constraints,
-                                int n_constraints) nogil:
+                                int n_constraints,
+                                data_t eps) nogil:
     """
     Given a solution, check whether a set of constraints is satisfied.
 
@@ -86,12 +94,14 @@ cdef int __constraints_violated(data_t* solution,
         Constraints to be evaluated
     n_constraints: int
         Number of constraints
+    eps: data_t
+        Numerical precision of the solution
     """
     cdef int n_violated = 0
     cdef int i
     with nogil:
         for i in range(n_constraints):
-            n_violated += not __is_satisfied(&constraints[i], solution)
+            n_violated += not __is_satisfied(&constraints[i], solution, eps)
     return n_violated
 
 
@@ -99,8 +109,10 @@ cdef class CyProblem:
 
     cdef int n_constraints
     cdef constraint_t* constraints
+    cdef data_t eps
 
-    def __cinit__(self, constraints):
+    def __cinit__(self, constraints, eps=1e-04):
+        self.eps = eps
         self.n_constraints = len(constraints)
         self.constraints = <constraint_t*>malloc(
             self.n_constraints * sizeof(constraint_t))
@@ -115,5 +127,6 @@ cdef class CyProblem:
         cdef data_t[::1] solution_buf = np.ascontiguousarray(solution, dtype=np.float)
         cdef int n_violated = __constraints_violated(&solution_buf[0],
                                                      self.constraints,
-                                                     self.n_constraints)
+                                                     self.n_constraints,
+                                                     self.eps)
         return n_violated
