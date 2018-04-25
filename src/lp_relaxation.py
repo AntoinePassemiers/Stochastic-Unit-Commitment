@@ -3,7 +3,7 @@
 # authors: Antoine Passemiers, Cedric Simar
 
 from instance import SUPInstance
-from utils import lp_array, ArrayCompatibleLpProblem
+from utils import lp_array, SUCLpProblem
 
 import numpy as np
 import pulp
@@ -56,7 +56,7 @@ def create_lp_relaxation(instance):
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
 
-    problem = ArrayCompatibleLpProblem("SUC", pulp.LpMinimize)
+    problem = SUCLpProblem("SUC", pulp.LpMinimize)
 
     u, v, p, theta, w, z, e = init_variables(
         Gs, Gf, n_scenarios, T, N, L, n_import_groups, var_type="Continuous")

@@ -110,6 +110,7 @@ cdef class CyProblem:
     cdef int n_constraints
     cdef constraint_t* constraints
     cdef data_t eps
+    cdef int n_variables
 
     def __cinit__(self, constraints, eps=1e-04):
         self.eps = eps
@@ -130,3 +131,9 @@ cdef class CyProblem:
                                                      self.n_constraints,
                                                      self.eps)
         return n_violated
+    
+    def round(self, solution, int_mask, eps=1e-04):
+        print(np.sum(int_mask), np.sum(np.logical_not(int_mask)))
+        rounded = np.copy(solution)
+        rounded[int_mask] = np.round(solution[int_mask])
+        return rounded

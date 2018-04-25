@@ -58,19 +58,36 @@ if __name__ == "__main__":
     else:
         print("Problem is undefined.")
 
-    with open("solution.txt", "w") as f:
-        f.write("Problem status: %i\n" % problem.status)
-        f.write("Value of the objective: %f\n" % problem.objective.value())
-        for variable in problem.variables():
-            f.write("%s = %s\n" % (str(variable.name), str(variable.varValue)))
-
-    solution = problem.get_variables().get_var_values()
+    variables = problem.get_variables()
+    solution = variables.get_var_values()
+    var_names = [var.name for var in variables]
+    int_mask = [var.name[0] in ["U", "W"] for var in variables]
     constraints = problem.get_constraints_as_tuples()
+
+    print(len(variables))
+    print(len(solution))
+
+    print(problem.is_integer_solution())
 
     cy_problem = heuristics.CyProblem(constraints)
     print("Number of violated constraints (python): %i" % problem.constraints_violated())
     print("Number of violated constraints (cython): %i" % cy_problem.constraints_violated(solution))
 
+    rounded = cy_problem.round(solution, int_mask)
+
+
+    print(len(rounded))
+
+    problem.set_var_values(rounded)
+
+    print(problem.is_integer_solution())
 
     if args.round:
         pass # TODO: Use a stochastic rounding algorithm
+
+
+    with open("solution.txt", "w") as f:
+        f.write("Problem status: %i\n" % problem.status)
+        f.write("Value of the objective: %f\n" % problem.objective.value())
+        for variable in problem.variables():
+            f.write("%s = %s\n" % (str(variable.name), str(variable.varValue)))

@@ -88,30 +88,44 @@ class LpVarArray(np.ndarray):
         return values
 
 
-class ArrayCompatibleLpProblem(pulp.LpProblem):
+class SUCLpProblem(pulp.LpProblem):
 
     def __init__(self, *args, **kwargs):
         pulp.LpProblem.__init__(self, *args, **kwargs)
         self.last_constraint_mat_shape = None
+        self.ordered_variables = None
+        self.all_var_ids = None
     
     def __iadd__(self, other):
         if isinstance(other, np.ndarray):
             result = self
             for index in np.ndindex(*other.shape):
-                result = super(ArrayCompatibleLpProblem, self).__iadd__(other[index])
+                result = super(SUCLpProblem, self).__iadd__(other[index])
             if len(tuple(other.shape)) == 0:
                 self.last_constraint_mat_shape = (1,)
             else:
                 self.last_constraint_mat_shape = tuple(other.shape)
         else:
-            result = super(ArrayCompatibleLpProblem, self).__iadd__(other)
+            result = super(SUCLpProblem, self).__iadd__(other)
             self.last_constraint_mat_shape = (1,)
         return result
     
+    def is_integer_solution(self, eps=1e-04):
+        if self.ordered_variables is None:
+            self.ordered_variables = list(self.variables())
+            self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
+        import sys
+        for variable in self.ordered_variables:
+            if variable.name[0] in ["U", "W"]:
+                print(round(variable.varValue), variable.varValue, round(variable.varValue) - variable.varValue)
+                if abs(round(variable.varValue) - variable.varValue) > eps:
+                    return False
+        return True
+
     def assert_shape(self, *args):
         assert(tuple(args) == self.last_constraint_mat_shape)
     
-    def constraints_violated(self, eps=1e-04):
+    def constraints_violated(self, eps=1e-04):  
         n_violated = 0
         for name in self.constraints:
             constraint = self.constraints[name]
@@ -133,21 +147,30 @@ class ArrayCompatibleLpProblem(pulp.LpProblem):
         intercept: float, int
             Constant right-hand side of the inequality
         """
-        variables = self.variables()
-        all_var_ids = {var.name: i for i, var in enumerate(variables)}
+        if self.ordered_variables is None:
+            self.ordered_variables = list(self.variables())
+            self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
         constraints = list()
         for name in self.constraints:
             c = self.constraints[name]
             sense = c.sense
             intercept = c.getLb() if sense == 1 else c.getUb()
-            var_ids = [all_var_ids[var.name] for var in c.keys()]
+            var_ids = [self.all_var_ids[var.name] for var in c.keys()]
             values = list(c.values())
             constraints.append((var_ids, values, sense, intercept))
             assert(sense in [1, 0, -1] and intercept is not None)
         return constraints
     
     def get_variables(self):
-        return LpVarArray(self.variables(), info={"var_type" : "Mixed"})
+        if self.ordered_variables is None:
+            self.ordered_variables = list(self.variables())
+            self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
+        return LpVarArray(self.ordered_variables, info={"var_type" : "Mixed"})
+    
+    def set_var_values(self, values):
+        assert(self.ordered_variables is not None)
+        for i, variable in enumerate(self.ordered_variables):
+            variable.varValue = values[i]
     
 
 if __name__ == "__main__":
