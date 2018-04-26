@@ -9,4 +9,4 @@ report.pdf: report.tex ${TEXS}
 	xelatex $< # Resolve the references
 
 clean:
-	rm -rf *.default *.toc *.log *.lod *.toc *.aux *.out */*.aux */*.default
+	rm -rf *.default *.bbl *.blg *.toc *.log *.lod *.toc *.aux *.out
