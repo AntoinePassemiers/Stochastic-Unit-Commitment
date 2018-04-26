@@ -114,10 +114,8 @@ class SUCLpProblem(pulp.LpProblem):
         if self.ordered_variables is None:
             self.ordered_variables = list(self.variables())
             self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
-        import sys
         for variable in self.ordered_variables:
             if variable.name[0] in ["U", "W"]:
-                print(round(variable.varValue), variable.varValue, round(variable.varValue) - variable.varValue)
                 if abs(round(variable.varValue) - variable.varValue) > eps:
                     return False
         return True

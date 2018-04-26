@@ -6,19 +6,22 @@ import numpy as np
 cimport numpy as cnp
 cnp.import_array()
 
-from libc.stdlib cimport malloc, calloc
+from libc.stdio cimport printf
+from libc.stdlib cimport malloc, calloc, rand, RAND_MAX
 from libc.string cimport memcpy, memset
 cimport libc.math
 
 
+np_data_t = np.float
 ctypedef cnp.float_t data_t
 
 cdef struct constraint_t:
-    int        n_values # Size of var_ids and values
-    cnp.int_t* var_ids  # Identifiers of the variables involved
-    data_t*    values   # Coefficients of the variables
-    data_t     rhs      # Right-hand side of the constraint (intercept)
-    int        sense    # Either 1, 0 or -1
+    int        n_values  # Size of var_ids and values
+    cnp.int_t* var_ids   # Identifiers of the variables involved
+    data_t*    values    # Coefficients of the variables
+    data_t     rhs       # Right-hand side of the constraint (intercept)
+    int        sense     # Either 1, 0 or -1
+    int        satisfied # Whether it is currently satisfied
 
 
 cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
@@ -48,6 +51,7 @@ cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
     memcpy(constraint.values, &values[0], n_values * sizeof(data_t))
     constraint.rhs = rhs
     constraint.sense = sense
+    constraint.satisfied = 1
     return constraint
 
 
@@ -71,11 +75,13 @@ cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data
         lhs += constraint.values[i] * \
             solution[constraint.var_ids[i]]
     if constraint.sense < 0:
-        return lhs <= constraint.rhs + eps
+        constraint.satisfied = (lhs <= constraint.rhs + eps)
     elif constraint.sense > 0:
-        return lhs >= constraint.rhs - eps
+        constraint.satisfied = (lhs >= constraint.rhs - eps)
     else:
-        return (lhs == constraint.rhs) or (libc.math.fabs(lhs - constraint.rhs) < eps)
+        constraint.satisfied = ((lhs == constraint.rhs) or \
+            (libc.math.fabs(lhs - constraint.rhs) < eps))
+    return constraint.satisfied
 
 
 cdef int __constraints_violated(data_t* solution,
@@ -105,6 +111,28 @@ cdef int __constraints_violated(data_t* solution,
     return n_violated
 
 
+cdef void __round_solution(data_t[::1] solution,
+                           data_t[::1] rounded,
+                           cnp.uint8_t[::1] int_mask,
+                           constraint_t* constraints,
+                           int n_constraints,
+                           data_t eps) nogil:
+    cdef int n_violated
+    cdef int i, j, k
+    for i in range(solution.shape[0]):
+        rounded[i] = libc.math.round(solution[i]) if int_mask[i] else solution[i]
+
+    n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
+    for k in range(20):
+        printf("%d\n", n_violated)
+
+        for i in range(solution.shape[0]):
+            if int_mask[i]:
+                rounded[i] = (<double>rand() / <double>RAND_MAX < 0.5)
+        
+        n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
+
+
 cdef class CyProblem:
 
     cdef int n_constraints
@@ -120,20 +148,17 @@ cdef class CyProblem:
         for i in range(self.n_constraints):
             self.constraints[i] = __create_constraint(
                 np.ascontiguousarray(constraints[i][0], dtype=np.int),
-                np.ascontiguousarray(constraints[i][1], dtype=np.float),
+                np.ascontiguousarray(constraints[i][1], dtype=np_data_t),
                 constraints[i][2],
                 constraints[i][3])
     
     def constraints_violated(self, solution):
-        cdef data_t[::1] solution_buf = np.ascontiguousarray(solution, dtype=np.float)
-        cdef int n_violated = __constraints_violated(&solution_buf[0],
-                                                     self.constraints,
-                                                     self.n_constraints,
-                                                     self.eps)
-        return n_violated
+        cdef data_t[::1] solution_buf = np.ascontiguousarray(solution, dtype=np_data_t)
+        return __constraints_violated(&solution_buf[0], self.constraints,
+            self.n_constraints, self.eps)
     
     def round(self, solution, int_mask, eps=1e-04):
-        print(np.sum(int_mask), np.sum(np.logical_not(int_mask)))
-        rounded = np.copy(solution)
-        rounded[int_mask] = np.round(solution[int_mask])
+        rounded = np.empty_like(solution)
+        __round_solution(solution, rounded, np.asarray(int_mask, dtype=np.uint8),
+            self.constraints, self.n_constraints, eps=eps)
         return rounded

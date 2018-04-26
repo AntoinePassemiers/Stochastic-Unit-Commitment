@@ -64,27 +64,20 @@ if __name__ == "__main__":
     int_mask = [var.name[0] in ["U", "W"] for var in variables]
     constraints = problem.get_constraints_as_tuples()
 
-    print(len(variables))
-    print(len(solution))
+
 
     print(problem.is_integer_solution())
-
-    cy_problem = heuristics.CyProblem(constraints)
-    print("Number of violated constraints (python): %i" % problem.constraints_violated())
-    print("Number of violated constraints (cython): %i" % cy_problem.constraints_violated(solution))
-
-    rounded = cy_problem.round(solution, int_mask)
-
-
-    print(len(rounded))
-
-    problem.set_var_values(rounded)
-
-    print(problem.is_integer_solution())
-
     if args.round:
-        pass # TODO: Use a stochastic rounding algorithm
+        print("\nRounding solution...")
+        cy_problem = heuristics.CyProblem(constraints)
+        rounded = cy_problem.round(solution, int_mask)
+        problem.set_var_values(rounded)
+        print("Number of violated constraints (cython): %i" % cy_problem.constraints_violated(rounded))
+        # print(problem.constraints_violated())
+        if problem.is_integer_solution() and not problem.constraints_violated():
 
+            print("Found integer MIP solution.")
+            print("Value of the objective: %f" % problem.objective.value())
 
     with open("solution.txt", "w") as f:
         f.write("Problem status: %i\n" % problem.status)

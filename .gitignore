@@ -1,5 +1,7 @@
 *.pyc
 *.pyd
+*.mps
+*.lp
 
 solution.txt
 
