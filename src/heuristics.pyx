@@ -55,6 +55,38 @@ cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
     return constraint
 
 
+cdef inline data_t __compute_value(constraint_t* constraint, data_t* solution, data_t eps) nogil:
+    """
+    Given a solution, compute a constraint's value.
+    A constraint's value is non-negative if and only if the constraint is satisfied.
+
+    Parameters
+    ----------
+    constraint: constraint_t
+        Constraint to be evaluated
+    solution: data_t*
+        Current solution to the problem. Its size is equal to the number
+        of variables in the problem instance.
+    eps: data_t
+        Numerical precision of the solution
+    """
+    cdef data_t lhs = 0
+    cdef data_t value
+    cdef int i
+    for i in range(constraint.n_values):
+        lhs += constraint.values[i] * \
+            solution[constraint.var_ids[i]]
+    if constraint.sense < 0:
+        value = constraint.rhs + eps - lhs
+    elif constraint.sense > 0:
+        value = lhs + eps - constraint.rhs
+    else:
+        value = -libc.math.fabs(lhs - constraint.rhs)
+        if value > -eps:
+            value = 0
+    return value
+
+
 cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data_t eps) nogil:
     """
     Given a solution, check whether a constraint is satisfied.
@@ -69,18 +101,7 @@ cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data
     eps: data_t
         Numerical precision of the solution
     """
-    cdef data_t lhs = 0
-    cdef int i
-    for i in range(constraint.n_values):
-        lhs += constraint.values[i] * \
-            solution[constraint.var_ids[i]]
-    if constraint.sense < 0:
-        constraint.satisfied = (lhs <= constraint.rhs + eps)
-    elif constraint.sense > 0:
-        constraint.satisfied = (lhs >= constraint.rhs - eps)
-    else:
-        constraint.satisfied = ((lhs == constraint.rhs) or \
-            (libc.math.fabs(lhs - constraint.rhs) < eps))
+    constraint.satisfied = (__compute_value(constraint, solution, eps) >= 0)
     return constraint.satisfied
 
 
@@ -111,26 +132,53 @@ cdef int __constraints_violated(data_t* solution,
     return n_violated
 
 
+cdef void __round_closest(data_t[::1] solution,
+                          cnp.uint8_t[::1] int_mask):
+    for i in range(solution.shape[0]):
+        solution[i] = libc.math.round(solution[i]) if int_mask[i] else solution[i]    
+
+
 cdef void __round_solution(data_t[::1] solution,
                            data_t[::1] rounded,
                            cnp.uint8_t[::1] int_mask,
                            constraint_t* constraints,
                            int n_constraints,
-                           data_t eps) nogil:
+                           data_t eps):
     cdef int n_violated
-    cdef int i, j, k
-    for i in range(solution.shape[0]):
-        rounded[i] = libc.math.round(solution[i]) if int_mask[i] else solution[i]
+    cdef int i, j, k, l, h
+    cdef cnp.float_t[:] values
 
+    __round_closest(solution, int_mask)
+
+    """
     n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
     for k in range(20):
         printf("%d\n", n_violated)
 
-        for i in range(solution.shape[0]):
-            if int_mask[i]:
-                rounded[i] = (<double>rand() / <double>RAND_MAX < 0.5)
+        proba = np.zeros(n_constraints, dtype=np.float)
+        values = np.zeros(n_constraints, dtype=np.float)
+        for j in range(n_constraints):
+            values[j] = __compute_value(&constraints[j], &rounded[0], eps)
+            values[j] = 0 if values[j] >= 0 else values[j]
+            proba[j] = np.abs(values[j])
+        proba /= proba.sum()
+
+        h = np.random.choice(np.arange(n_constraints), p=proba)
         
+        with nogil:
+            for j in range(constraints[h].n_values):
+                l = constraints[h].var_ids[j]
+                if constraints[h].sense == 1:
+                    rounded[l] -= values[h] * constraints[h].values[j]
+                elif constraints[h].sense == 0:
+                    rounded[l] -= values[h] * constraints[h].values[j]
+                else:
+                    rounded[l] += values[h] * constraints[h].values[j]
+
+        __round_closest(rounded, int_mask)
+
         n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
+    """
 
 
 cdef class CyProblem:

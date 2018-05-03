@@ -75,6 +75,7 @@ def create_lp_relaxation(instance):
     #    Market-clearing constraint: uncertainty in demand 
     #    and production of renewable resources for each node
     #    sum_LIn e[l, s, t] + sum_g p[g, s, t] == D[n, s, t] + sum_LOn e[l, s, t]
+    problem.set_constraint_group("3.21")
     for n in range(N):
         LIn_ids = LI_indices[n][LI_indices[n] != -1]
         LOn_ids = LO_indices[n][LO_indices[n] != -1]
@@ -83,6 +84,7 @@ def create_lp_relaxation(instance):
     
     # Define constraints group 3.22
     #    e[l, s, t] == B[l, s] * (theta[n, s, t] - theta[m, s, t])
+    problem.set_constraint_group("3.22")
     for l in range(L):
         n, m = L_node_indices[l][0], L_node_indices[l][1]
         problem += (e[l, :, :] == B[l, :][..., np.newaxis] * \
@@ -90,33 +92,40 @@ def create_lp_relaxation(instance):
 
     # Define constraints group 3.23
     #    e[l, s, t] <= TC[l]
+    problem.set_constraint_group("3.23")
     problem += (np.swapaxes(e, 0, 2) <= TC)
 
     # Define constraints group 3.24
     #    -TC[l] <= e[l, s, t]
+    problem.set_constraint_group("3.24")
     problem += (-TC <= np.swapaxes(e, 0, 2))
 
     # Define constraints group 3.25
     # Generator contingencies: Maximum generator capicity limits
     #    p[g, s, t] <= P_plus[g, s] * u[g, s, t]
+    problem.set_constraint_group("3.25")
     problem += (np.transpose(p, (2, 0, 1)) <= P_plus * np.transpose(u, (2, 0, 1)))
 
     # Define constraints group 3.26
     # Generator contingencies: Minimum generator capicity limits
     #    P_minus[g, s]* u[g, s, t] <= p[g, s, t]
+    problem.set_constraint_group("3.26")
     problem += (P_minus * np.transpose(u, (2, 0, 1)) <= np.transpose(p, (2, 0, 1)))
 
     # Define constraints group 3.27
     #    p[g, s, t] - p[g, s, t-1] <= R_plus[g]
+    problem.set_constraint_group("3.27")
     problem += (np.swapaxes(p[:, :, 1:] - p[:, :, :-1], 0, 2) <= R_plus)
 
     # Define constraints group 3.28
     #    p[g, s, t-1] - p[g, s, t] <= R_minus[g]
+    problem.set_constraint_group("3.28")
     problem += (np.swapaxes(p[:, :, :-1] - p[:, :, 1:], 0, 2) <= R_minus)
 
     # Define constraints group 3.29
     #    sum_{t-UT[g]+1}^t z[g, q] <= w[g, t]
     #    t >= UT[g]
+    problem.set_constraint_group("3.29")
     for g in range(len(Gs)):
         UTg = int(UT[Gs[g]])
         for t in range(UTg, T):
@@ -125,6 +134,7 @@ def create_lp_relaxation(instance):
     # Define constraints group 3.30
     #    sum_{t+1}^{t+DT[g]} z[g, q] <= 1 - w[g, t]
     #    t <= N - DT[g]
+    problem.set_constraint_group("3.30")
     for g in range(len(Gs)):
         DTg = int(DT[Gs[g]])
         for t in range(0, N-DTg-1):
@@ -133,6 +143,7 @@ def create_lp_relaxation(instance):
     # Define contraints group 3.31
     #    sum_{t-UT[g]+1}^t v[g, s, q] <= u[g, s, t]
     #    t >= UT[g]
+    problem.set_constraint_group("3.31")
     for g in range(len(Gf)):
         UTg = int(UT[Gf[g]])
         for t in range(UTg, T):
@@ -141,6 +152,7 @@ def create_lp_relaxation(instance):
     # Define constraints group 3.32
     #    sum_{t+1}^{t+DT[g]} v[g, s, q] <= 1 - u[g, s, t]
     #    t <= N - DT[g]
+    problem.set_constraint_group("3.32")
     for g in range(len(Gf)):
         DTg = int(DT[Gs[g]])
         for t in range(0, N-DTg-1):
@@ -148,6 +160,7 @@ def create_lp_relaxation(instance):
     
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators
+    problem.set_constraint_group("3.33")
     problem += (z <= 1)
 
     # Define constraints group 3.34
@@ -156,18 +169,22 @@ def create_lp_relaxation(instance):
 
     # Define constraints group 3.35
     #    s[g, t] >= w[g, t] - w[g, t-1]
+    problem.set_constraint_group("3.35")
     problem += z[:, 1:] >= w[:, 1:] - w[:, :-1]
 
     # Define constraints group 3.36
     #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1]
+    problem.set_constraint_group("3.36")
     problem += v[Gf, :, 1:] >= u[Gf, :, 1:] - u[Gf, :, :-1]
 
     # Define constraints group 3.37
     #    PI[s] * u[g, s, t] == PI[s] * w[g, t]
+    problem.set_constraint_group("3.37")
     problem += (np.swapaxes(u, 0, 1)[:, Gs, :] == w)
 
     # Define constraints group 3.38
     #    PI[s] * v[g, s, t] == PI[s] * z[g, t]
+    problem.set_constraint_group("3.38")
     problem += (np.swapaxes(v, 0, 1)[:, Gs, :] == z)
 
     # Define constraints group 3.39

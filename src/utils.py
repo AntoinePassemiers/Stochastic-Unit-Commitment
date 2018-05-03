@@ -95,17 +95,21 @@ class SUCLpProblem(pulp.LpProblem):
         self.last_constraint_mat_shape = None
         self.ordered_variables = None
         self.all_var_ids = None
+        self.groups = list()
+        self.current_group_name = "-"
     
     def __iadd__(self, other):
         if isinstance(other, np.ndarray):
             result = self
             for index in np.ndindex(*other.shape):
+                self.groups.append(self.current_group_name)
                 result = super(SUCLpProblem, self).__iadd__(other[index])
             if len(tuple(other.shape)) == 0:
                 self.last_constraint_mat_shape = (1,)
             else:
                 self.last_constraint_mat_shape = tuple(other.shape)
         else:
+            self.groups.append(self.current_group_name)
             result = super(SUCLpProblem, self).__iadd__(other)
             self.last_constraint_mat_shape = (1,)
         return result
@@ -119,17 +123,26 @@ class SUCLpProblem(pulp.LpProblem):
                 if abs(round(variable.varValue) - variable.varValue) > eps:
                     return False
         return True
+    
+    def set_constraint_group(self, name):
+        self.current_group_name = name
 
     def assert_shape(self, *args):
         assert(tuple(args) == self.last_constraint_mat_shape)
     
-    def constraints_violated(self, eps=1e-04):  
+    def constraints_violated(self, eps=1e-04):
+        groups_n_violated = dict()
         n_violated = 0
-        for name in self.constraints:
+        for i, name in enumerate(self.constraints):
+            if self.groups[i] not in groups_n_violated.keys():
+                groups_n_violated[self.groups[i]] = [0, 0]
             constraint = self.constraints[name]
             if not (constraint.valid() or abs(constraint.value()) < eps):
                 n_violated += 1
-        return n_violated
+                if self.groups[i] in groups_n_violated.keys():
+                    groups_n_violated[self.groups[i]][0] += 1
+            groups_n_violated[self.groups[i]][1] += 1
+        return n_violated, groups_n_violated
     
     def get_constraints_as_tuples(self):
         """ Get list of constraints in a non-PuLP format. Each constraint
@@ -137,7 +150,7 @@ class SUCLpProblem(pulp.LpProblem):
 
         var_ids: list
             The (integer) identifiers of the variables involved in the constraint
-        values: list
+        coefs: list
             The values corresponding to the variables in var_ids
         sense: int
             Inequality sense, where the inequality is of the form Sum_i coef_i*var_i sense intercept.
@@ -154,8 +167,8 @@ class SUCLpProblem(pulp.LpProblem):
             sense = c.sense
             intercept = c.getLb() if sense == 1 else c.getUb()
             var_ids = [self.all_var_ids[var.name] for var in c.keys()]
-            values = list(c.values())
-            constraints.append((var_ids, values, sense, intercept))
+            coefs = list(c.values())
+            constraints.append((var_ids, coefs, sense, intercept))
             assert(sense in [1, 0, -1] and intercept is not None)
         return constraints
     
