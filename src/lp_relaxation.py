@@ -3,37 +3,11 @@
 # authors: Antoine Passemiers, Cedric Simar
 
 from instance import SUPInstance
-from utils import lp_array, SUCLpProblem
+from utils import SUCLpProblem
+from variables import init_variables
 
 import numpy as np
 import pulp
-
-
-def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
-    G = len(Gs) + len(Gf) # Number of generators
-
-    # u[g, s, t] = Commitment of generator g in scenario s, period t
-    u = lp_array("U", (G, S, T), var_type, 0, 1)
-
-    # v[g, s, t] = Startup of generator g in scenario s, period t
-    v = lp_array("V", (G, S, T), "Continuous", 0, 1)
-
-    # p[g, s, t] = Production of generator g in scenario s, period t
-    p = lp_array("P", (G, S, T), "Continuous", low_bound=0)
-
-    # theta[n, s, t] = Phase angle at bus n in scenario s, period t
-    theta = lp_array("THETA", (N, S, T), "Continuous")
-
-    # w[g, t] = Commitment of slow generator g in period t
-    w = lp_array("W", (len(Gs), T), var_type, 0, 1)
-
-    # z[g, t] = Startup of slow generator g in period t
-    z = lp_array("Z", (len(Gs), T), "Continuous", low_bound=0)
-
-    # e[l, s, t] = Power flow on line l in scenario s, period t
-    e = lp_array("E", (L, S, T), "Continuous")
-
-    return u, v, p, theta, w, z, e
 
 
 def create_lp_relaxation(instance):    
@@ -156,7 +130,7 @@ def create_lp_relaxation(instance):
     for g in range(len(Gf)):
         DTg = int(DT[Gs[g]])
         for t in range(0, N-DTg-1):
-            problem += (np.sum(v[Gf[g], :, t+1:t+Dtg+1], axis=1) <= 1 - u[Gf[g], :, t])
+            problem += (np.sum(v[Gf[g], :, t+1:t+DTg+1], axis=1) <= 1 - u[Gf[g], :, t])
     
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators
@@ -165,7 +139,8 @@ def create_lp_relaxation(instance):
 
     # Define constraints group 3.34
     #    v[g, s, t] <= 1 for slow generators
-    #    Those constraints have been added during variables initialization
+    problem.set_constraint_group("3.34")
+    problem += (v[Gs, :, :] <= 1)
 
     # Define constraints group 3.35
     #    s[g, t] >= w[g, t] - w[g, t-1]
@@ -191,13 +166,13 @@ def create_lp_relaxation(instance):
     #    For all generators:
     #    p[g, s, t] >= 0
     #    v[g, s, t] >= 0
-    #    u[g, s, t] in {0, 1}
+    #    0 <= u[g, s, t] <= 1
     #    Those constraints have been added during variables initialization
 
     # Define constraints group 3.40
     #    For slow generators:
     #    z[g, t] >= 0
-    #    w[g, t] in {0, 1}
+    #    0 <= w[g, t] <= 1
     #    Those constraints have been added during variables initialization
 
     return problem

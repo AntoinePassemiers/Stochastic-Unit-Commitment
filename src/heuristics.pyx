@@ -55,7 +55,10 @@ cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
     return constraint
 
 
-cdef inline data_t __compute_value(constraint_t* constraint, data_t* solution, data_t eps) nogil:
+cdef inline data_t __compute_value(constraint_t* constraint,
+                                   data_t* solution,
+                                   data_t eps,
+                                   bint oriented) nogil:
     """
     Given a solution, compute a constraint's value.
     A constraint's value is non-negative if and only if the constraint is satisfied.
@@ -69,6 +72,8 @@ cdef inline data_t __compute_value(constraint_t* constraint, data_t* solution, d
         of variables in the problem instance.
     eps: data_t
         Numerical precision of the solution
+    oriented: bint
+        Whether to return a signed value in case of an equality constraint
     """
     cdef data_t lhs = 0
     cdef data_t value
@@ -80,10 +85,13 @@ cdef inline data_t __compute_value(constraint_t* constraint, data_t* solution, d
         value = constraint.rhs + eps - lhs
     elif constraint.sense > 0:
         value = lhs + eps - constraint.rhs
-    else:
-        value = -libc.math.fabs(lhs - constraint.rhs)
-        if value > -eps:
-            value = 0
+    else: # Equality constraint
+        if not oriented:
+            value = -libc.math.fabs(lhs - constraint.rhs)
+            if value > -eps:
+                value = 0
+        else:
+            value = lhs + eps - constraint.rhs
     return value
 
 
@@ -101,7 +109,7 @@ cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data
     eps: data_t
         Numerical precision of the solution
     """
-    constraint.satisfied = (__compute_value(constraint, solution, eps) >= 0)
+    constraint.satisfied = (__compute_value(constraint, solution, eps, False) >= 0)
     return constraint.satisfied
 
 
@@ -135,7 +143,8 @@ cdef int __constraints_violated(data_t* solution,
 cdef void __round_closest(data_t[::1] solution,
                           cnp.uint8_t[::1] int_mask):
     for i in range(solution.shape[0]):
-        solution[i] = libc.math.round(solution[i]) if int_mask[i] else solution[i]    
+        if int_mask[i]:
+            solution[i] = libc.math.round(solution[i])
 
 
 cdef void __round_solution(data_t[::1] solution,
@@ -144,27 +153,24 @@ cdef void __round_solution(data_t[::1] solution,
                            constraint_t* constraints,
                            int n_constraints,
                            data_t eps):
-    cdef int n_violated
+    cdef int n_violated, best
     cdef int i, j, k, l, h
     cdef cnp.float_t[:] values
 
-    __round_closest(solution, int_mask)
+    __round_closest(rounded, int_mask)
 
-    """
     n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
     for k in range(20):
         printf("%d\n", n_violated)
-
         proba = np.zeros(n_constraints, dtype=np.float)
         values = np.zeros(n_constraints, dtype=np.float)
         for j in range(n_constraints):
-            values[j] = __compute_value(&constraints[j], &rounded[0], eps)
+            values[j] = __compute_value(&constraints[j], &rounded[0], eps, False)
             values[j] = 0 if values[j] >= 0 else values[j]
             proba[j] = np.abs(values[j])
         proba /= proba.sum()
-
         h = np.random.choice(np.arange(n_constraints), p=proba)
-        
+
         with nogil:
             for j in range(constraints[h].n_values):
                 l = constraints[h].var_ids[j]
@@ -174,11 +180,8 @@ cdef void __round_solution(data_t[::1] solution,
                     rounded[l] -= values[h] * constraints[h].values[j]
                 else:
                     rounded[l] += values[h] * constraints[h].values[j]
-
         __round_closest(rounded, int_mask)
-
         n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
-    """
 
 
 cdef class CyProblem:
@@ -206,7 +209,7 @@ cdef class CyProblem:
             self.n_constraints, self.eps)
     
     def round(self, solution, int_mask, eps=1e-04):
-        rounded = np.empty_like(solution)
+        rounded = np.copy(solution)
         __round_solution(solution, rounded, np.asarray(int_mask, dtype=np.uint8),
             self.constraints, self.n_constraints, eps=eps)
         return rounded

@@ -115,12 +115,10 @@ class SUCLpProblem(pulp.LpProblem):
         return result
     
     def is_integer_solution(self, eps=1e-04):
-        if self.ordered_variables is None:
-            self.ordered_variables = list(self.variables())
-            self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
-        for variable in self.ordered_variables:
+        for variable in self.variables():
             if variable.name[0] in ["U", "W"]:
                 if abs(round(variable.varValue) - variable.varValue) > eps:
+                    print(variable.name, variable.varValue)
                     return False
         return True
     
@@ -158,35 +156,29 @@ class SUCLpProblem(pulp.LpProblem):
         intercept: float, int
             Constant right-hand side of the inequality
         """
-        if self.ordered_variables is None:
-            self.ordered_variables = list(self.variables())
-            self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
+        all_var_ids = {var.name: i for i, var in enumerate(list(self.variables()))}
         constraints = list()
         for name in self.constraints:
             c = self.constraints[name]
             sense = c.sense
             intercept = c.getLb() if sense == 1 else c.getUb()
-            var_ids = [self.all_var_ids[var.name] for var in c.keys()]
+            var_ids = [all_var_ids[var.name] for var in c.keys()]
             coefs = list(c.values())
             constraints.append((var_ids, coefs, sense, intercept))
             assert(sense in [1, 0, -1] and intercept is not None)
         return constraints
     
     def get_variables(self):
-        if self.ordered_variables is None:
-            self.ordered_variables = list(self.variables())
-            self.all_var_ids = {var.name: i for i, var in enumerate(self.ordered_variables)}
-        return LpVarArray(self.ordered_variables, info={"var_type" : "Mixed"})
+        return LpVarArray(list(self.variables()), info={"var_type" : "Mixed"})
     
     def set_var_values(self, values):
-        assert(self.ordered_variables is not None)
-        for i, variable in enumerate(self.ordered_variables):
+        for i, variable in enumerate(list(self.variables())):
             variable.varValue = values[i]
     
 
 if __name__ == "__main__":
     """
-    prob = ArrayCompatibleLpProblem("The fancy indexing problem", pulp.LpMinimize)
+    prob = SUCLpProblem("The fancy indexing problem", pulp.LpMinimize)
 
     X = lp_array("X", (5, 5), "Continuous", up_bound=80)
     Y = lp_array("Y", (7, 5, 5), "Continuous", up_bound=500)
