@@ -6,6 +6,8 @@ import numpy as np
 cimport numpy as cnp
 cnp.import_array()
 
+import random
+
 from libc.stdio cimport printf
 from libc.stdlib cimport malloc, calloc, rand, RAND_MAX
 from libc.string cimport memcpy, memset
@@ -140,6 +142,19 @@ cdef int __constraints_violated(data_t* solution,
     return n_violated
 
 
+cdef double __fitness(data_t* solution,
+                     constraint_t* constraints,
+                     int n_constraints,
+                     data_t eps) nogil:
+    cdef double fitness = 0.0
+    with nogil:
+        for i in range(n_constraints):
+            if not __is_satisfied(&constraints[i], solution, eps):
+                fitness -= libc.math.fabs(
+                    __compute_value(&constraints[i], solution, eps, False))
+    return fitness
+
+
 cdef void __round_closest(data_t[::1] solution,
                           cnp.uint8_t[::1] int_mask):
     for i in range(solution.shape[0]):
@@ -161,7 +176,6 @@ cdef void __round_solution(data_t[::1] solution,
 
     n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
     for k in range(20):
-        printf("%d\n", n_violated)
         proba = np.zeros(n_constraints, dtype=np.float)
         values = np.zeros(n_constraints, dtype=np.float)
         for j in range(n_constraints):
@@ -212,4 +226,40 @@ cdef class CyProblem:
         rounded = np.copy(solution)
         __round_solution(solution, rounded, np.asarray(int_mask, dtype=np.uint8),
             self.constraints, self.n_constraints, eps=eps)
-        return rounded
+
+        pop_size = 1000
+        population = list()
+        for i in range(pop_size):
+            member = np.copy(solution)
+            member[int_mask] = (solution[int_mask] > np.random.rand(sum(int_mask)))
+            population.append(member)
+        
+        cdef data_t[::1] member_buf
+        for j in range(20):
+            random.shuffle(population)
+            F = list()
+            for i in range(pop_size):
+                member_buf = population[i]
+                fitness = __fitness(&member_buf[0],
+                    self.constraints,
+                    self.n_constraints,
+                    eps) 
+                F.append(fitness)
+            F = np.asarray(F)
+
+            # print(max(F))
+
+            a = np.argmax(F[:pop_size//2])
+            b = np.argmax(F[pop_size//2:]) + (pop_size//2)
+
+            child = np.copy(solution)
+            alpha = np.random.randint(0, 2, size=sum(int_mask))
+            child[int_mask] = alpha * population[a][int_mask] + (1 - alpha) * population[b][int_mask]
+
+            pp = random.randint(0, sum(int_mask))
+            child[int_mask][pp] = 1 - child[int_mask][pp]
+
+            c = np.argmin(F)
+            population[c] = child
+        
+        return population[a]

@@ -10,39 +10,35 @@ import numpy as np
 import pulp
 
 
-def create_lp_relaxation(instance):    
+def create_formulation(instance, lower_bound=None, relax=True):
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
     n_generators, n_periods, n_lines, n_nodes = G, T, L, N
 
-    (Gs, Gf, Gn, LIn, LOn, IG) = instance.get_indices()
-    
-    LI_indices = np.full((N, N), -1, dtype=np.int)
-    LO_indices = np.full((N, N), -1, dtype=np.int)
-    L_node_indices = list()
-    line_id = 0
-    for n in range(len(LIn)):
-        for k in LIn[n]:
-            LI_indices[n][k] = LO_indices[k][n] = line_id
-            L_node_indices.append((n, k))
-            line_id += 1
+    (Gs, Gf, Gn, LIn, LOn, IG, LI_indices, LO_indices, \
+        L_node_indices) = instance.get_indices()
     
 
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
 
-    problem = SUCLpProblem("SUC", pulp.LpMinimize)
 
-    u, v, p, theta, w, z, e = init_variables(
-        Gs, Gf, n_scenarios, T, N, L, n_import_groups, var_type="Continuous")
+    (u, v, p, theta, w, z, e) = variables = init_variables(
+        Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=relax)
 
     print("Defining problem...")
+    problem = SUCLpProblem("SUC", pulp.LpMinimize)
 
     # Define objective function: 
     #    sum_g sum_s sum_t PI[s] * (K[g]*u[g, s, t] + S[g]*v[g, s, t] + C[g]*p[g, s, t])
-    problem += np.sum(PI * np.swapaxes(
-        K * np.swapaxes(u, 0, 2) + \
-        S * np.swapaxes(v, 0, 2) + \
-        C * np.swapaxes(p, 0, 2), 1, 2))
+    obj = np.sum(PI * np.swapaxes(
+            K * np.swapaxes(u, 0, 2) + \
+            S * np.swapaxes(v, 0, 2) + \
+            C * np.swapaxes(p, 0, 2), 1, 2))
+    problem += obj
+
+    if lower_bound:
+        problem.set_constraint_group("obj")
+        problem += (obj >= lower_bound)
 
 
     # Define constraints group 3.21
@@ -51,8 +47,8 @@ def create_lp_relaxation(instance):
     #    sum_LIn e[l, s, t] + sum_g p[g, s, t] == D[n, s, t] + sum_LOn e[l, s, t]
     problem.set_constraint_group("3.21")
     for n in range(N):
-        LIn_ids = LI_indices[n][LI_indices[n] != -1]
-        LOn_ids = LO_indices[n][LO_indices[n] != -1]
+        LIn_ids = LI_indices[n]
+        LOn_ids = LO_indices[n]
         problem += (np.sum(e[LIn_ids, :, :], axis=0) + np.sum(p[Gn[n], :, :], axis=0) == \
             D[n, :, :] + np.sum(e[LOn_ids, :, :], axis=0))
     
@@ -128,7 +124,7 @@ def create_lp_relaxation(instance):
     #    t <= N - DT[g]
     problem.set_constraint_group("3.32")
     for g in range(len(Gf)):
-        DTg = int(DT[Gs[g]])
+        DTg = int(DT[Gf[g]])
         for t in range(0, N-DTg-1):
             problem += (np.sum(v[Gf[g], :, t+1:t+DTg+1], axis=1) <= 1 - u[Gf[g], :, t])
     
@@ -175,4 +171,4 @@ def create_lp_relaxation(instance):
     #    0 <= w[g, t] <= 1
     #    Those constraints have been added during variables initialization
 
-    return problem
+    return problem, variables

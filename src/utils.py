@@ -81,8 +81,7 @@ class LpVarArray(np.ndarray):
             variable.varValue = values[index]
     
     def get_var_values(self):
-        dtype = np.float if (self.var_type in ["Continuous", "Mixed"]) else np.int
-        values = np.empty(self.shape, dtype=dtype)
+        values = np.empty(self.shape, dtype=np.float)
         for index, variable in np.ndenumerate(self):
             values[index] = variable.varValue
         return values
@@ -118,7 +117,6 @@ class SUCLpProblem(pulp.LpProblem):
         for variable in self.variables():
             if variable.name[0] in ["U", "W"]:
                 if abs(round(variable.varValue) - variable.varValue) > eps:
-                    print(variable.name, variable.varValue)
                     return False
         return True
     
@@ -141,6 +139,14 @@ class SUCLpProblem(pulp.LpProblem):
                     groups_n_violated[self.groups[i]][0] += 1
             groups_n_violated[self.groups[i]][1] += 1
         return n_violated, groups_n_violated
+    
+    def get_fitness(self, eps=1e-04):
+        fitness = 0
+        for i, name in enumerate(self.constraints):
+            constraint = self.constraints[name]
+            if not (constraint.valid() or abs(constraint.value()) < eps):
+                fitness += abs(constraint.value())
+        return fitness
     
     def get_constraints_as_tuples(self):
         """ Get list of constraints in a non-PuLP format. Each constraint
@@ -171,6 +177,9 @@ class SUCLpProblem(pulp.LpProblem):
     def get_variables(self):
         return LpVarArray(list(self.variables()), info={"var_type" : "Mixed"})
     
+    def get_var_values(self):
+        return self.get_variables().get_var_values()
+
     def set_var_values(self, values):
         for i, variable in enumerate(list(self.variables())):
             variable.varValue = values[i]

@@ -82,7 +82,20 @@ class SUPInstance:
             self.n_lines, self.n_nodes, self.n_import_groups)
 
     def get_indices(self):
-        return (self.Gs, self.Gf, self.Gn, self.LIn, self.LOn, self.IG)
+        LI_indices = np.full((self.n_nodes, self.n_nodes), -1, dtype=np.int)
+        LO_indices = np.full((self.n_nodes, self.n_nodes), -1, dtype=np.int)
+        L_node_indices = list()
+        line_id = 0
+        for n in range(len(self.LIn)):
+            for k in self.LIn[n]:
+                LI_indices[n][k] = LO_indices[k][n] = line_id
+                L_node_indices.append((k, n))
+                line_id += 1
+        for n in range(len(self.LOn)):
+            for k in self.LOn[n]:
+                assert(LO_indices[n][k] != -1)
+        return (self.Gs, self.Gf, self.Gn, self.LIn, self.LOn, self.IG,
+            LI_indices, LO_indices, L_node_indices)
 
     def get_constants(self):
         return (self.PI, self.K, self.S, self.C, self.D, self.P_plus, self.P_minus,

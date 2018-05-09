@@ -14,17 +14,8 @@ def decompose_problem(instance, mu, nu):
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
     n_generators, n_periods, n_lines, n_nodes = G, T, L, N
 
-    (Gs, Gf, Gn, LIn, LOn, IG) = instance.get_indices()
-    
-    LI_indices = np.full((N, N), -1, dtype=np.int)
-    LO_indices = np.full((N, N), -1, dtype=np.int)
-    L_node_indices = list()
-    line_id = 0
-    for n in range(len(LIn)):
-        for k in LIn[n]:
-            LI_indices[n][k] = LO_indices[k][n] = line_id
-            L_node_indices.append((n, k))
-            line_id += 1
+    (Gs, Gf, Gn, LIn, LOn, IG, LI_indices, LO_indices, \
+        L_node_indices) = instance.get_indices()
 
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
@@ -110,7 +101,7 @@ def decompose_problem(instance, mu, nu):
         #    t <= N - DT[g]
         problem.set_constraint_group("3.32")
         for g in range(len(Gf)):
-            DTg = int(DT[Gs[g]])
+            DTg = int(DT[Gf[g]])
             for t in range(0, N-DTg-1):
                 problem += (np.sum(v[Gf[g], s, t+1:t+DTg+1]) <= 1 - u[Gf[g], s, t])
 
@@ -177,4 +168,4 @@ def decompose_problem(instance, mu, nu):
     problem.set_constraint_group("3.35")
     problem += z[:, 1:] >= w[:, 1:] - w[:, :-1]
 
-    return P1s, P2
+    return P1s, P2, u, v, w, z

@@ -5,7 +5,8 @@
 from utils import lp_array
 
 
-def init_variables(Gs, Gf, S, T, N, L, I, var_type="Continuous"):
+def init_variables(Gs, Gf, S, T, N, L, I, relax=True):
+    var_type = "Continuous" if relax else "Integer"
     G = len(Gs) + len(Gf) # Number of generators
 
     # u[g, s, t] = Commitment of generator g in scenario s, period t
