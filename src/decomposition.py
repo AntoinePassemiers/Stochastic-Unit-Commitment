@@ -23,10 +23,10 @@ def decompose_problem(instance, mu, nu):
         Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=False)
 
 
-    P1s = list() # P1 subproblems
+    P1 = list() # P1 subproblems
     for s in range(n_scenarios):
         problem = SUCLpProblem("P1_%i" % (s+1), pulp.LpMinimize)
-        P1s.append(problem)
+        P1.append(problem)
 
         # Define objective function for scenario s:
         #    sum_g sum_t PI[s] * (K[g]*u[g, s, t] + S[g]*v[g, s, t] + C[g]*p[g, s, t])
@@ -123,6 +123,7 @@ def decompose_problem(instance, mu, nu):
         #    u[g, s, t] in {0, 1}
         #    Those constraints have been added during variables initialization
 
+
     P2 = problem = SUCLpProblem("P2", pulp.LpMinimize)
 
     # Define objective function for each s:
@@ -130,7 +131,6 @@ def decompose_problem(instance, mu, nu):
     problem += -np.sum(PI * np.transpose(
         np.transpose(mu[Gs, :, :], (1, 0, 2)) * w[Gs, :] + \
         np.transpose(nu[Gs, :, :], (1, 0, 2)) * z[Gs, :], (1, 2, 0)))
-
 
     # Define constraints group 3.29
     #    sum_{t-UT[g]+1}^t z[g, q] <= w[g, t]
@@ -167,4 +167,66 @@ def decompose_problem(instance, mu, nu):
     #    w[g, t] in {0, 1}
     #    Those constraints have been added during variables initialization
 
-    return P1s, P2, u, v, w, z
+
+    ED = list() # Economic dispatches
+    for s in range(n_scenarios):
+        problem = SUCLpProblem("ED_%i" % (s+1), pulp.LpMinimize)
+        ED.append(problem)
+
+        # Define objective function for scenario s:
+        #    sum_g sum_t K[g]*w[g, t] + S[g]*z[g, t] + C[g]*p[g, s, t]
+        problem += np.sum(K * w[:, :].T + S * z[:, :].T + C * p[:, s, :].T)
+
+        # Define constraints group 3.42
+        #    Market-clearing constraint: uncertainty in demand 
+        #    and production of renewable resources for each node
+        #    sum_LIn e[l, s, t] + sum_g p[g, s, t] == D[n, s, t] + sum_LOn e[l, s, t]
+        problem.set_constraint_group("3.42")
+        for n in range(N):
+            LIn_ids = LI_indices[n][LI_indices[n] != -1]
+            LOn_ids = LO_indices[n][LO_indices[n] != -1]
+            sum_g = np.sum(p[Gn[n], s, :], axis=0) if len(Gn[n]) > 1 else p[Gn[n][0], s, :]
+            problem += (np.sum(e[LIn_ids, s, :], axis=0) + sum_g == \
+                D[n, s, :] + np.sum(e[LOn_ids, s, :], axis=0))
+
+        # Define constraints group 3.43
+        #    e[l, s, t] == B[l, s] * (theta[n, s, t] - theta[m, s, t])
+        problem.set_constraint_group("3.43")
+        for l in range(L):
+            m, n = L_node_indices[l]
+            problem += (e[l, s, :] == B[l, s] * (theta[n, s, :] - theta[m, s, :]))
+
+        # Define constraints group 3.44
+        # Generator contingencies: Maximum generator capacity limits
+        #    p[g, s, t] <= P_plus[g, s] * u[g, s, t]
+        problem.set_constraint_group("3.44")
+        problem += (p[:, s, :].T <= P_plus[:, s] * u[:, s, :].T)
+
+        # Define constraints group 3.45
+        # Generator contingencies: Minimum generator capicity limits
+        #    P_minus[g, s]* u[g, s, t] <= p[g, s, t]
+        problem.set_constraint_group("3.45")
+        problem += (P_minus[:, s] * u[:, s, :].T <= p[:, s, :].T)
+
+        # Define constraints group 3.46
+        #    p[g, s, t] - p[g, s, t-1] <= R_plus[g]
+        problem.set_constraint_group("3.46")
+        problem += ((p[:, s, 1:] - p[:, s, :-1]).T <= R_plus)
+
+        # Define constraints group 3.28
+        #    p[g, s, t-1] - p[g, s, t] <= R_minus[g]
+        problem.set_constraint_group("3.28")
+        problem += ((p[:, s, :-1] - p[:, s, 1:]).T <= R_minus)
+
+        # Define constraints group 3.23
+        #    e[l, s, t] <= TC[l]
+        problem.set_constraint_group("3.23")
+        problem += (e[:, s, :].T <= TC)
+
+        # Define constraints group 3.24
+        #    -TC[l] <= e[l, s, t]
+        problem.set_constraint_group("3.24")
+        problem += (-TC <= e[:, s, :].T)
+
+
+    return P1, P2, ED, u, v, w, z, p
