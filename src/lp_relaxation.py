@@ -47,16 +47,17 @@ def create_formulation(instance, lower_bound=None, relax=True):
     #    sum_LIn e[l, s, t] + sum_g p[g, s, t] == D[n, s, t] + sum_LOn e[l, s, t]
     problem.set_constraint_group("3.21")
     for n in range(N):
-        LIn_ids = LI_indices[n]
-        LOn_ids = LO_indices[n]
-        problem += (np.sum(e[LIn_ids, :, :], axis=0) + np.sum(p[Gn[n], :, :], axis=0) == \
+        LIn_ids = LI_indices[n][LI_indices[n] != SUPInstance.NO_LINE]
+        LOn_ids = LO_indices[n][LO_indices[n] != SUPInstance.NO_LINE]
+        sum_g = np.sum(p[Gn[n], :, :], axis=0) if len(Gn[n]) > 1 else p[Gn[n][0], :, :]
+        problem += (np.sum(e[LIn_ids, :, :], axis=0) + sum_g == \
             D[n, :, :] + np.sum(e[LOn_ids, :, :], axis=0))
     
     # Define constraints group 3.22
     #    e[l, s, t] == B[l, s] * (theta[n, s, t] - theta[m, s, t])
     problem.set_constraint_group("3.22")
     for l in range(L):
-        n, m = L_node_indices[l][0], L_node_indices[l][1]
+        m, n = L_node_indices[l]
         problem += (e[l, :, :] == B[l, :][..., np.newaxis] * \
             (theta[n, :, :] - theta[m, :, :]))
 
@@ -77,7 +78,7 @@ def create_formulation(instance, lower_bound=None, relax=True):
     problem += (np.transpose(p, (2, 0, 1)) <= P_plus * np.transpose(u, (2, 0, 1)))
 
     # Define constraints group 3.26
-    # Generator contingencies: Minimum generator capicity limits
+    # Generator contingencies: Minimum generator capacity limits
     #    P_minus[g, s]* u[g, s, t] <= p[g, s, t]
     problem.set_constraint_group("3.26")
     problem += (P_minus * np.transpose(u, (2, 0, 1)) <= np.transpose(p, (2, 0, 1)))
@@ -96,8 +97,8 @@ def create_formulation(instance, lower_bound=None, relax=True):
     #    sum_{t-UT[g]+1}^t z[g, q] <= w[g, t]
     #    t >= UT[g]
     problem.set_constraint_group("3.29")
-    for g in range(len(Gs)):
-        UTg = int(UT[Gs[g]])
+    for g in Gs:
+        UTg = int(UT[g])
         for t in range(UTg, T):
             problem += (np.sum(z[g, t-UTg+1:t+1]) <= w[g, t])
 
@@ -105,8 +106,8 @@ def create_formulation(instance, lower_bound=None, relax=True):
     #    sum_{t+1}^{t+DT[g]} z[g, q] <= 1 - w[g, t]
     #    t <= N - DT[g]
     problem.set_constraint_group("3.30")
-    for g in range(len(Gs)):
-        DTg = int(DT[Gs[g]])
+    for g in Gs:
+        DTg = int(DT[g])
         for t in range(0, N-DTg-1):
             problem += (np.sum(z[g, t+1:t+DTg+1]) <= 1 + w[g, t])
     
@@ -114,24 +115,24 @@ def create_formulation(instance, lower_bound=None, relax=True):
     #    sum_{t-UT[g]+1}^t v[g, s, q] <= u[g, s, t]
     #    t >= UT[g]
     problem.set_constraint_group("3.31")
-    for g in range(len(Gf)):
-        UTg = int(UT[Gf[g]])
+    for g in Gf:
+        UTg = int(UT[g])
         for t in range(UTg, T):
-            problem += (np.sum(v[Gf[g], :, t-UTg+1:t+1], axis=1) <= u[Gf[g], :, t])
+            problem += (np.sum(v[g, :, t-UTg+1:t+1], axis=1) <= u[g, :, t])
 
     # Define constraints group 3.32
     #    sum_{t+1}^{t+DT[g]} v[g, s, q] <= 1 - u[g, s, t]
     #    t <= N - DT[g]
     problem.set_constraint_group("3.32")
-    for g in range(len(Gf)):
-        DTg = int(DT[Gf[g]])
+    for g in Gf:
+        DTg = int(DT[g])
         for t in range(0, N-DTg-1):
-            problem += (np.sum(v[Gf[g], :, t+1:t+DTg+1], axis=1) <= 1 - u[Gf[g], :, t])
+            problem += (np.sum(v[g, :, t+1:t+DTg+1], axis=1) <= 1 - u[g, :, t])
     
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators
     problem.set_constraint_group("3.33")
-    problem += (z <= 1)
+    problem += (z[Gs, :] <= 1)
 
     # Define constraints group 3.34
     #    v[g, s, t] <= 1 for slow generators
@@ -139,9 +140,9 @@ def create_formulation(instance, lower_bound=None, relax=True):
     problem += (v[Gs, :, :] <= 1)
 
     # Define constraints group 3.35
-    #    s[g, t] >= w[g, t] - w[g, t-1]
+    #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
-    problem += z[:, 1:] >= w[:, 1:] - w[:, :-1]
+    problem += z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1]
 
     # Define constraints group 3.36
     #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1]
@@ -151,12 +152,12 @@ def create_formulation(instance, lower_bound=None, relax=True):
     # Define constraints group 3.37
     #    PI[s] * u[g, s, t] == PI[s] * w[g, t]
     problem.set_constraint_group("3.37")
-    problem += (np.swapaxes(u, 0, 1)[:, Gs, :] == w)
+    problem += (np.swapaxes(u[Gs, :, :], 0, 1) == w[Gs, :])
 
     # Define constraints group 3.38
     #    PI[s] * v[g, s, t] == PI[s] * z[g, t]
     problem.set_constraint_group("3.38")
-    problem += (np.swapaxes(v, 0, 1)[:, Gs, :] == z)
+    problem += (np.swapaxes(v[Gs, :, :], 0, 1) == z[Gs, :])
 
     # Define constraints group 3.39
     #    For all generators:

@@ -1,45 +1,47 @@
-from utils import *
-import pyximport
-pyximport.install(setup_args={'include_dirs': np.get_include()})
-import heuristics
+def create_admissible_solution(problem, variables, instance):
+    (Gs, Gf, Gn, LIn, LOn, IG, LI_indices, LO_indices, \
+        L_node_indices) = instance.get_indices()
+    (n_generators, n_scenarios, n_periods, n_lines, \
+        n_nodes, n_import_groups) = instance.get_sizes()
+    (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
+        UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
+    (u, v, p, theta, w, z, e) = variables
+    variables = problem.get_variables()
+    int_mask = [var.name[0] in ["U", "W"] for var in variables]
+    solution = variables.get_var_values()
+    solution[int_mask] = np.round(solution[int_mask])
+    problem.set_var_values(solution)
+
+    n_violated, groups_n_violated = problem.constraints_violated()
+    print(n_violated)
+
+    for g in range(n_generators):
+        for s in range(n_scenarios):
+            for t in range(n_periods):
+                ll = P_plus[g, s] * u[g, s, t].varValue if random.random() < 0.5 else P_minus[g, s] * u[g, s, t].varValue
+                if p[g, s, t].varValue > P_plus[g, s] * u[g, s, t].varValue:
+                    p[g, s, t].varValue = P_plus[g, s] * u[g, s, t].varValue
+                elif p[g, s, t].varValue < P_minus[g, s] * u[g, s, t].varValue:
+                    p[g, s, t].varValue = P_minus[g, s] * u[g, s, t].varValue
 
 
-X = lp_array("X", (5, 5), "Continuous", up_bound=80)
-Y = lp_array("Y", (5, 5), "Continuous", up_bound=500)
+    subprob = SUCLpProblem("-", pulp.LpMinimize)
+    obj = C * np.swapaxes(p, 0, 2)
+    subprob += obj
 
-prob = SUCLpProblem("prob", pulp.LpMaximize)
-prob += 3 * X + 4 * Y
+    subprob.set_constraint_group("3.21")
+    for n in range(n_nodes):
+        for s in range(n_scenarios):
+            for t in range(n_periods):
+                p_values = p[Gn[n], s, t].get_var_values() if isinstance(p[Gn[n], s, t], LpVarArray) else p[Gn[n], s, t].varValue
+                subprob += (np.sum(p[Gn[n], s, t], axis=0) == np.sum(p_values))
+            
+    for g in range(n_generators):
+        subprob += (np.transpose(p, (2, 0, 1)) <= P_plus * np.transpose(u.get_var_values(), (2, 0, 1)))
+        subprob += (P_minus * np.transpose(u.get_var_values(), (2, 0, 1)) <= np.transpose(p, (2, 0, 1)))
 
-prob += (X - 2 * Y <= 7)
-prob += (-8*X + 3*Y == 15)
+    subprob.solve()
+    print(subprob.status)
 
-prob.solve()
-
-variables = prob.get_variables()
-int_mask = [1] * len(variables)
-solution = variables.get_var_values()
-constraints = prob.get_constraints_as_tuples()
-
-
-
-rounded = np.round(solution)
-while True:
-    prob.set_var_values(rounded)
-    n_violated, _ = prob.constraints_violated()
-    print(len(n_violated))
-    if n_violated == 0:
-        break
-    
-
-
-
-
-prob.set_var_values(rounded)
-n_violated, groups_n_violated = prob.constraints_violated()
-print("Number of violated constraints: %i" % n_violated)
-for group in groups_n_violated.keys():
-    print("Number of violated constraints of group %s: %i / %i" % (
-        group, groups_n_violated[group][0], groups_n_violated[group][1]))
-if prob.is_integer_solution() and not prob.constraints_violated():
-    print("Found integer MIP solution.")
-    print("Value of the objective: %f" % prob.objective.value())
+    n_violated, groups_n_violated = subprob.constraints_violated()
+    print(n_violated)

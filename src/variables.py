@@ -22,10 +22,10 @@ def init_variables(Gs, Gf, S, T, N, L, I, relax=True):
     theta = lp_array("THETA", (N, S, T), "Continuous")
 
     # w[g, t] = Commitment of slow generator g in period t
-    w = lp_array("W", (len(Gs), T), var_type, 0, 1)
+    w = lp_array("W", (G, T), var_type, 0, 1)
 
     # z[g, t] = Startup of slow generator g in period t
-    z = lp_array("Z", (len(Gs), T), "Continuous", low_bound=0)
+    z = lp_array("Z", (G, T), "Continuous", low_bound=0)
 
     # e[l, s, t] = Power flow on line l in scenario s, period t
     e = lp_array("E", (L, S, T), "Continuous")

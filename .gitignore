@@ -2,6 +2,7 @@
 *.pyd
 *.mps
 *.lp
+*.sol
 
 solution.txt
 

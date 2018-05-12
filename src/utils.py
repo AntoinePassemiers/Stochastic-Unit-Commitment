@@ -8,22 +8,19 @@ import pulp
 
 
 def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
-    """ Creates a Numpy array of PuLP variables
+    """ Create a Numpy array of PuLP variables.
 
-    Parameters
-    ----------
-    name: str
-        Base name for the variables.
-        Example: if "X" is provided, the first element of a 5x5 array
-        will be defined as "X(0,0)"
-    shape: tuple
-        Dimensionality of the new array
-    var_type: str
-        Type of PuLP variables (either "Mixed", "Continuous" or "Integer")
-    low_bound: float, int (optional)
-        Lower bound for all variables in the new array
-    up_bound: float, int (optional)
-        Upper bound for all variables in the new array
+    Args:
+        name (str): Base name for the variables.
+            Example: if "X" is provided, the first element of a 5x5 array
+            will be defined as "X(0,0)"
+        shape (tuple): Dimensionality of the new array
+        var_type (str): Type of PuLP variables
+            (either "Mixed", "Continuous" or "Integer")
+        low_bound (:obj:`float`,`int`, optional):
+            Lower bound for all variables in the new array
+        up_bound (:obj:`float`,`int`, optional):
+            Upper bound for all variables in the new array
     """
     variables = np.empty(shape, dtype=np.object)
     for index in np.ndindex(*shape):
@@ -149,18 +146,19 @@ class SUCLpProblem(pulp.LpProblem):
         return fitness
     
     def get_constraints_as_tuples(self):
-        """ Get list of constraints in a non-PuLP format. Each constraint
-        is a tuple containing:
+        """ Get list of constraints in a non-PuLP format.
 
-        var_ids: list
-            The (integer) identifiers of the variables involved in the constraint
-        coefs: list
-            The values corresponding to the variables in var_ids
-        sense: int
-            Inequality sense, where the inequality is of the form Sum_i coef_i*var_i sense intercept.
-            1 stands for ">=", -1 for "<=", and 0 for"==".
-        intercept: float, int
-            Constant right-hand side of the inequality
+        Each constraint is represented as a tuple containing:
+            var_ids: list
+                The (integer) identifiers of the variables involved in the constraint
+            coefs: list
+                The values corresponding to the variables in var_ids
+            sense: int
+                Inequality sense, where the inequality is of the form 
+                Sum_i coef_i*var_i sense intercept.
+                1 stands for ">=", -1 for "<=", and 0 for"==".
+            intercept: float, int
+                Constant right-hand side of the inequality
         """
         all_var_ids = {var.name: i for i, var in enumerate(list(self.variables()))}
         constraints = list()

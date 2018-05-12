@@ -6,6 +6,7 @@ import numpy as np
 
 
 class SUPInstance:
+    NO_LINE = -1
 
     def __init__(self, Gs, Gf, n_scenarios, n_periods, n_lines, n_nodes, n_import_groups):
         self.Gs = Gs
@@ -82,8 +83,8 @@ class SUPInstance:
             self.n_lines, self.n_nodes, self.n_import_groups)
 
     def get_indices(self):
-        LI_indices = np.full((self.n_nodes, self.n_nodes), -1, dtype=np.int)
-        LO_indices = np.full((self.n_nodes, self.n_nodes), -1, dtype=np.int)
+        LI_indices = np.full((self.n_nodes, self.n_nodes), SUPInstance.NO_LINE, dtype=np.int)
+        LO_indices = np.full((self.n_nodes, self.n_nodes), SUPInstance.NO_LINE, dtype=np.int)
         L_node_indices = list()
         line_id = 0
         for n in range(len(self.LIn)):
@@ -93,7 +94,7 @@ class SUPInstance:
                 line_id += 1
         for n in range(len(self.LOn)):
             for k in self.LOn[n]:
-                assert(LO_indices[n][k] != -1)
+                assert(LO_indices[n][k] != SUPInstance.NO_LINE)
         return (self.Gs, self.Gf, self.Gn, self.LIn, self.LOn, self.IG,
             LI_indices, LO_indices, L_node_indices)
 
@@ -146,6 +147,9 @@ class SUPInstance:
             L = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             N = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             Gn = SUPInstance.parse_n_data_lines(f, N, is_index=True)
+            for n in range(len(Gn)):
+                if isinstance(Gn[n], int):
+                    Gn[n] = [Gn[n]]
             LIn = [[el[0] for el in line] for line in \
                 SUPInstance.parse_n_data_lines(f, N, is_index=True)]
             LOn = [[el[1] for el in line] for line in \
@@ -184,5 +188,5 @@ class SUPInstance:
             if SUPInstance.check_if_provided(f):
                 instance.IC[:] = SUPInstance.parse_n_data_lines(f, 1)[0]
                 instance.GAMMA[:] = SUPInstance.parse_n_data_lines(f, 1)[0]
-
+            
             return instance

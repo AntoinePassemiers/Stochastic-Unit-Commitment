@@ -20,17 +20,15 @@ def decompose_problem(instance, mu, nu):
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
     u, v, p, theta, w, z, e = init_variables(
-        Gs, Gf, n_scenarios, T, N, L, n_import_groups, var_type="Integer")
+        Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=False)
 
 
-    P1s = list() # P1s subproblems
+    P1s = list() # P1 subproblems
     for s in range(n_scenarios):
         problem = SUCLpProblem("P1_%i" % (s+1), pulp.LpMinimize)
         P1s.append(problem)
 
-        print("Defining sub-problem P1_%i..." % (s+1))
-
-        # Define objective function for each s:
+        # Define objective function for scenario s:
         #    sum_g sum_t PI[s] * (K[g]*u[g, s, t] + S[g]*v[g, s, t] + C[g]*p[g, s, t])
         #       + sum_gs sum_t PI[s] * (mu[g, s, t] * u[g, s, t] + nu[g, s, t] * v[g, s, t])
         problem += np.sum(PI[s] * (K * u[:, s, :].T + S * v[:, s, :].T + C * p[:, s, :].T)) + \
@@ -45,14 +43,15 @@ def decompose_problem(instance, mu, nu):
         for n in range(N):
             LIn_ids = LI_indices[n][LI_indices[n] != -1]
             LOn_ids = LO_indices[n][LO_indices[n] != -1]
-            problem += (np.sum(e[LIn_ids, s, :], axis=0) + np.sum(p[Gn[n], s, :], axis=0) == \
+            sum_g = np.sum(p[Gn[n], s, :], axis=0) if len(Gn[n]) > 1 else p[Gn[n][0], s, :]
+            problem += (np.sum(e[LIn_ids, s, :], axis=0) + sum_g == \
                 D[n, s, :] + np.sum(e[LOn_ids, s, :], axis=0))
         
         # Define constraints group 3.22
         #    e[l, s, t] == B[l, s] * (theta[n, s, t] - theta[m, s, t])
         problem.set_constraint_group("3.22")
         for l in range(L):
-            n, m = L_node_indices[l][0], L_node_indices[l][1]
+            m, n = L_node_indices[l]
             problem += (e[l, s, :] == B[l, s] * (theta[n, s, :] - theta[m, s, :]))
 
         # Define constraints group 3.23
@@ -66,7 +65,7 @@ def decompose_problem(instance, mu, nu):
         problem += (-TC <= e[:, s, :].T)
 
         # Define constraints group 3.25
-        # Generator contingencies: Maximum generator capicity limits
+        # Generator contingencies: Maximum generator capacity limits
         #    p[g, s, t] <= P_plus[g, s] * u[g, s, t]
         problem.set_constraint_group("3.25")
         problem += (p[:, s, :].T <= P_plus[:, s] * u[:, s, :].T)
@@ -91,19 +90,19 @@ def decompose_problem(instance, mu, nu):
         #    sum_{t-UT[g]+1}^t v[g, s, q] <= u[g, s, t]
         #    t >= UT[g]
         problem.set_constraint_group("3.31")
-        for g in range(len(Gf)):
-            UTg = int(UT[Gf[g]])
+        for g in Gf:
+            UTg = int(UT[g])
             for t in range(UTg, T):
-                problem += (np.sum(v[Gf[g], s, t-UTg+1:t+1]) <= u[Gf[g], s, t])
+                problem += (np.sum(v[g, s, t-UTg+1:t+1]) <= u[g, s, t])
 
         # Define constraints group 3.32
         #    sum_{t+1}^{t+DT[g]} v[g, s, q] <= 1 - u[g, s, t]
         #    t <= N - DT[g]
         problem.set_constraint_group("3.32")
-        for g in range(len(Gf)):
-            DTg = int(DT[Gf[g]])
+        for g in Gf:
+            DTg = int(DT[g])
             for t in range(0, N-DTg-1):
-                problem += (np.sum(v[Gf[g], s, t+1:t+DTg+1]) <= 1 - u[Gf[g], s, t])
+                problem += (np.sum(v[g, s, t+1:t+DTg+1]) <= 1 - u[g, s, t])
 
         # Define constraints group 3.34
         #    v[g, s, t] <= 1 for slow generators
@@ -122,30 +121,21 @@ def decompose_problem(instance, mu, nu):
         #    u[g, s, t] in {0, 1}
         #    Those constraints have been added during variables initialization
 
-        # Define constraints group 3.40
-        #    For slow generators:
-        #    z[g, t] >= 0
-        #    w[g, t] in {0, 1}
-        #    Those constraints have been added during variables initialization
-
-    
-    print("Defining sub-problem P2...")
-
     P2 = problem = SUCLpProblem("P2", pulp.LpMinimize)
 
     # Define objective function for each s:
     #    - sum_Gs sum_s sum_t PI[s] * (mu[g, s, t] * w[g, t] + nu[g, s, t] * z[g, t])
     problem += -np.sum(PI * np.transpose(
-        np.transpose(mu[Gs, :, :], (1, 0, 2)) * w + \
-        np.transpose(nu[Gs, :, :], (1, 0, 2)) * z, (1, 2, 0)))
+        np.transpose(mu[Gs, :, :], (1, 0, 2)) * w[Gs, :] + \
+        np.transpose(nu[Gs, :, :], (1, 0, 2)) * z[Gs, :], (1, 2, 0)))
 
 
     # Define constraints group 3.29
     #    sum_{t-UT[g]+1}^t z[g, q] <= w[g, t]
     #    t >= UT[g]
     problem.set_constraint_group("3.29")
-    for g in range(len(Gs)):
-        UTg = int(UT[Gs[g]])
+    for g in Gs:
+        UTg = int(UT[g])
         for t in range(UTg, T):
             problem += (np.sum(z[g, t-UTg+1:t+1]) <= w[g, t])
 
@@ -153,19 +143,25 @@ def decompose_problem(instance, mu, nu):
     #    sum_{t+1}^{t+DT[g]} z[g, q] <= 1 - w[g, t]
     #    t <= N - DT[g]
     problem.set_constraint_group("3.30")
-    for g in range(len(Gs)):
-        DTg = int(DT[Gs[g]])
+    for g in Gs:
+        DTg = int(DT[g])
         for t in range(0, N-DTg-1):
             problem += (np.sum(z[g, t+1:t+DTg+1]) <= 1 + w[g, t])
 
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators
     problem.set_constraint_group("3.33")
-    problem += (z <= 1)
+    problem += (z[Gs, :] <= 1)
 
     # Define constraints group 3.35
-    #    s[g, t] >= w[g, t] - w[g, t-1]
+    #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
-    problem += z[:, 1:] >= w[:, 1:] - w[:, :-1]
+    problem += z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1]
+
+    # Define constraints group 3.40
+    #    For slow generators:
+    #    z[g, t] >= 0
+    #    w[g, t] in {0, 1}
+    #    Those constraints have been added during variables initialization
 
     return P1s, P2, u, v, w, z
