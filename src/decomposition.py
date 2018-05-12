@@ -101,7 +101,8 @@ def decompose_problem(instance, mu, nu):
         problem.set_constraint_group("3.32")
         for g in Gf:
             DTg = int(DT[g])
-            for t in range(0, N-DTg-1):
+            # Number of periods in horizon = T
+            for t in range(0, T-DTg-1):
                 if t + 1 < T:
                     problem += (np.sum(v[g, s, t+1:t+DTg+1]) <= 1 - u[g, s, t])
 
@@ -146,7 +147,7 @@ def decompose_problem(instance, mu, nu):
     problem.set_constraint_group("3.30")
     for g in Gs:
         DTg = int(DT[g])
-        for t in range(0, N-DTg+1):
+        for t in range(0, T-DTg+1):
             if t + 1 < T:
                 problem += (np.sum(z[g, t+1:t+DTg+1]) <= 1 - w[g, t])
 
