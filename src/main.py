@@ -54,13 +54,17 @@ def solve_problem(instance, relax=True):
 
     print(problem.is_integer_solution())
     if args.round == "dive-and-fix": # TODO
-        #cp = heuristics.CyProblem(constraints)
-        #rounded = cp.round(solution, int_mask)
-        #problem.set_var_values(rounded)
+        variables = problem.get_variables()
+        int_mask = [var.name[0] in ["U", "W"] for var in variables]
+        solution = problem.get_var_values()
+        constraints = problem.get_constraints_as_tuples()
+        cp = heuristics.CyProblem(constraints)
+        rounded = cp.round(solution, int_mask)
+        problem.set_var_values(rounded)
         
         #problem, u, w = create_formulation(instance, relax=False, lower_bound=1.1*obj)
         #problem.solve()
-        dive_and_fix(problem, variables)
+        #dive_and_fix(problem, variables)
 
     n_violated, groups_n_violated = problem.constraints_violated()
     print("Number of violated constraints (python): %i" % n_violated)

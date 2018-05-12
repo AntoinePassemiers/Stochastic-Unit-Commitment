@@ -108,8 +108,9 @@ def create_formulation(instance, lower_bound=None, relax=True):
     problem.set_constraint_group("3.30")
     for g in Gs:
         DTg = int(DT[g])
-        for t in range(0, N-DTg-1):
-            problem += (np.sum(z[g, t+1:t+DTg+1]) <= 1 + w[g, t])
+        for t in range(0, N-DTg+1):
+            if t + 1 < T:
+                problem += (np.sum(z[g, t+1:t+DTg+1]) <= 1 - w[g, t])
     
     # Define contraints group 3.31
     #    sum_{t-UT[g]+1}^t v[g, s, q] <= u[g, s, t]
@@ -127,7 +128,8 @@ def create_formulation(instance, lower_bound=None, relax=True):
     for g in Gf:
         DTg = int(DT[g])
         for t in range(0, N-DTg-1):
-            problem += (np.sum(v[g, :, t+1:t+DTg+1], axis=1) <= 1 - u[g, :, t])
+            if t + 1 < T:
+                problem += (np.sum(v[g, :, t+1:t+DTg+1], axis=1) <= 1 - u[g, :, t])
     
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators

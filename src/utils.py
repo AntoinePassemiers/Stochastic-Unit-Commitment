@@ -95,20 +95,27 @@ class SUCLpProblem(pulp.LpProblem):
         self.current_group_name = "-"
     
     def __iadd__(self, other):
+        assert(other is not False)
+        if other is True:
+            return True
         if isinstance(other, np.ndarray):
             result = self
             for index in np.ndindex(*other.shape):
                 self.groups.append(self.current_group_name)
-                result = super(SUCLpProblem, self).__iadd__(other[index])
+                result = self.add_single_constraint(other[index])
             if len(tuple(other.shape)) == 0:
                 self.last_constraint_mat_shape = (1,)
             else:
                 self.last_constraint_mat_shape = tuple(other.shape)
         else:
             self.groups.append(self.current_group_name)
-            result = super(SUCLpProblem, self).__iadd__(other)
+            result = self.add_single_constraint(other)
             self.last_constraint_mat_shape = (1,)
         return result
+    
+    def add_single_constraint(self, constraint):
+        assert(not isinstance(constraint, np.bool_))
+        return super(SUCLpProblem, self).__iadd__(constraint)
     
     def is_integer_solution(self, eps=1e-04):
         for variable in self.variables():

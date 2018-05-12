@@ -227,15 +227,16 @@ cdef class CyProblem:
         __round_solution(solution, rounded, np.asarray(int_mask, dtype=np.uint8),
             self.constraints, self.n_constraints, eps=eps)
 
-        pop_size = 1000
+        pop_size = 500
         population = list()
         for i in range(pop_size):
             member = np.copy(solution)
             member[int_mask] = (solution[int_mask] > np.random.rand(sum(int_mask)))
             population.append(member)
-        
+
+        cdef cnp.int_t[::1] __int_mask = np.asarray(int_mask, dtype=np.int)        
         cdef data_t[::1] member_buf
-        for j in range(20):
+        for j in range(1000):
             random.shuffle(population)
             F = list()
             for i in range(pop_size):
@@ -243,21 +244,26 @@ cdef class CyProblem:
                 fitness = __fitness(&member_buf[0],
                     self.constraints,
                     self.n_constraints,
-                    eps) 
+                    eps)
+                if fitness >= 0.0:
+                    print("LJSKDJHSJQDJHSD")
                 F.append(fitness)
             F = np.asarray(F)
 
-            # print(max(F))
-
-            a = np.argmax(F[:pop_size//2])
-            b = np.argmax(F[pop_size//2:]) + (pop_size//2)
+            indices = np.arange(F.shape[0])
+            np.random.shuffle(indices)
+            part_size = pop_size // 2
+            a = indices[np.argmax(F[indices[:part_size//2]])]
+            b = indices[np.argmax(F[indices[part_size//2:]]) + (part_size//2)]
 
             child = np.copy(solution)
             alpha = np.random.randint(0, 2, size=sum(int_mask))
+            #print(j, a, len(int_mask), len(population[a]))
             child[int_mask] = alpha * population[a][int_mask] + (1 - alpha) * population[b][int_mask]
 
-            pp = random.randint(0, sum(int_mask))
-            child[int_mask][pp] = 1 - child[int_mask][pp]
+            for d in range(3):
+                pp = np.random.randint(0, np.sum(int_mask))
+                child[__int_mask][pp] = 1 - child[__int_mask][pp]
 
             c = np.argmin(F)
             population[c] = child
