@@ -10,7 +10,7 @@ import numpy as np
 import pulp
 
 
-def create_formulation(instance, lower_bound=None, relax=True):
+def create_formulation(instance, variables=None, lower_bound=None, relax=True):
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
     n_generators, n_periods, n_lines, n_nodes = G, T, L, N
 
@@ -21,11 +21,11 @@ def create_formulation(instance, lower_bound=None, relax=True):
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
 
+    if variables is None:
+        variables = init_variables(
+            Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=relax)
+    (u, v, p, theta, w, z, e) = variables
 
-    (u, v, p, theta, w, z, e) = variables = init_variables(
-        Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=relax)
-
-    print("Defining problem...")
     problem = SUCLpProblem("SUC", pulp.LpMinimize)
 
     # Define objective function: 

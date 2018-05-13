@@ -7,6 +7,9 @@ import numpy as np
 import pulp
 
 
+# RELAXED_VARIABLES = ["U", "W"]
+RELAXED_VARIABLES = ["W"]
+
 def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
     """ Create a Numpy array of PuLP variables.
 
@@ -119,7 +122,7 @@ class SUCLpProblem(pulp.LpProblem):
     
     def is_integer_solution(self, eps=1e-04):
         for variable in self.variables():
-            if variable.name[0] in ["U", "W"]:
+            if variable.name[0] in RELAXED_VARIABLES:
                 if abs(round(variable.varValue) - variable.varValue) > eps:
                     return False
         return True

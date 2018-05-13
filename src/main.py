@@ -7,7 +7,7 @@ from instance import SUPInstance
 from lp_relaxation import init_variables, create_formulation
 from rounding import dive_and_fix
 from subgradient import solve_with_subgradient
-from utils import LpVarArray, SUCLpProblem
+from utils import LpVarArray, SUCLpProblem, RELAXED_VARIABLES
 
 import os
 import sys
@@ -38,24 +38,14 @@ def solve_problem(instance, relax=True):
     exec_time = time.time() - start
     obj = problem.objective.value()
     print("Solve time: %f s" % exec_time)
-    print("Problem status: %i" % problem.status)
+    print("Problem status: %s" % pulp.LpStatus[problem.status])
     if problem.status == pulp.constants.LpStatusOptimal:
-        print("Solution is optimal.")
         print("Value of the objective: %f" % obj)
-    elif problem.status == pulp.constants.LpStatusNotSolved:
-        print("Problem not solved.")
-    elif problem.status == pulp.constants.LpStatusInfeasible:
-        print("Problem is infeasible.")
-    elif problem.status == pulp.constants.LpStatusUnbounded:
-        print("Problem is unbounded.")
-    else:
-        print("Problem is undefined.")
-
 
     print(problem.is_integer_solution())
     if args.round == "dive-and-fix": # TODO
         variables = problem.get_variables()
-        int_mask = [var.name[0] in ["U", "W"] for var in variables]
+        int_mask = [var.name[0] in RELAXED_VARIABLES for var in variables]
         solution = problem.get_var_values()
         constraints = problem.get_constraints_as_tuples()
         cp = heuristics.CyProblem(constraints)
@@ -82,7 +72,6 @@ def solve_problem(instance, relax=True):
         f.write("Value of the objective: %f\n" % problem.objective.value())
         for variable in problem.variables():
             f.write("%s = %s\n" % (str(variable.name), str(variable.varValue)))
-
 
 
 if __name__ == "__main__":

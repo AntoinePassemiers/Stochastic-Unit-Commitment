@@ -3,6 +3,7 @@
 # authors: Antoine Passemiers, Cedric Simar
 
 from instance import SUPInstance
+from lp_relaxation import create_formulation
 from utils import SUCLpProblem
 from variables import init_variables
 
@@ -19,9 +20,11 @@ def decompose_problem(instance, mu, nu):
 
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
-    u, v, p, theta, w, z, e = init_variables(
+    (u, v, p, theta, w, z, e) = variables = init_variables(
         Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=False)
 
+    # Original problem
+    PP, _ = create_formulation(instance, variables=variables, relax=False)
 
     P1 = list() # P1 subproblems
     for s in range(n_scenarios):
@@ -124,11 +127,11 @@ def decompose_problem(instance, mu, nu):
         #    Those constraints have been added during variables initialization
 
 
-    P2 = problem = SUCLpProblem("P2", pulp.LpMinimize)
+    P2 = problem = SUCLpProblem("P2", pulp.LpMaximize)
 
     # Define objective function for each s:
     #    - sum_Gs sum_s sum_t PI[s] * (mu[g, s, t] * w[g, t] + nu[g, s, t] * z[g, t])
-    problem += -np.sum(PI * np.transpose(
+    problem += np.sum(PI * np.transpose(
         np.transpose(mu[Gs, :, :], (1, 0, 2)) * w[Gs, :] + \
         np.transpose(nu[Gs, :, :], (1, 0, 2)) * z[Gs, :], (1, 2, 0)))
 
@@ -228,5 +231,12 @@ def decompose_problem(instance, mu, nu):
         problem.set_constraint_group("3.24")
         problem += (-TC <= e[:, s, :].T)
 
+        # Define constraints group 3.49
+        #    For slow generators:
+        #    p[g, s, t] >= 0
+        #    z[g, t] >= 0
+        #    w[g, t] in {0, 1}
+        #    Those constraints have been added during variables initialization
 
-    return P1, P2, ED, u, v, w, z, p
+
+    return PP, P1, P2, ED, variables
