@@ -236,32 +236,35 @@ cdef class CyProblem:
 
         cdef cnp.int_t[::1] __int_mask = np.asarray(int_mask, dtype=np.int)        
         cdef data_t[::1] member_buf
-        for j in range(1000):
+    
+        for j in range(10000):
             random.shuffle(population)
             F = list()
             for i in range(pop_size):
                 member_buf = population[i]
-                fitness = __fitness(&member_buf[0],
+                fitness = __fitness(
+                    &member_buf[0],
                     self.constraints,
                     self.n_constraints,
                     eps)
                 if fitness >= 0.0:
-                    print("LJSKDJHSJQDJHSD")
+                    return np.asarray(member_buf)
                 F.append(fitness)
             F = np.asarray(F)
+            print(F.max())
 
-            indices = np.arange(F.shape[0])
+            indices = np.arange(pop_size)
             np.random.shuffle(indices)
-            part_size = pop_size // 2
-            a = indices[np.argmax(F[indices[:part_size//2]])]
-            b = indices[np.argmax(F[indices[part_size//2:]]) + (part_size//2)]
+            part_size = 30
+            a = indices[np.argmax(F[indices[:part_size]])]
+            b = indices[np.argmax(F[indices[part_size:2*part_size]]) + part_size]
 
-            child = np.copy(solution)
+            child = np.copy(population[a])
             alpha = np.random.randint(0, 2, size=sum(int_mask))
             #print(j, a, len(int_mask), len(population[a]))
             child[int_mask] = alpha * population[a][int_mask] + (1 - alpha) * population[b][int_mask]
 
-            for d in range(3):
+            for d in range(50):
                 pp = np.random.randint(0, np.sum(int_mask))
                 child[__int_mask][pp] = 1 - child[__int_mask][pp]
 

@@ -20,6 +20,7 @@ def decompose_problem(instance, mu, nu):
 
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
+        
     (u, v, p, theta, w, z, e) = variables = init_variables(
         Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=False)
 
@@ -36,7 +37,6 @@ def decompose_problem(instance, mu, nu):
         #       + sum_gs sum_t PI[s] * (mu[g, s, t] * u[g, s, t] + nu[g, s, t] * v[g, s, t])
         problem += np.sum(PI[s] * (K * u[:, s, :].T + S * v[:, s, :].T + C * p[:, s, :].T)) + \
             np.sum(PI[s] * (mu[Gs, s, :] * u[Gs, s, :] + nu[Gs, s, :] * v[Gs, s, :]))
-
 
         # Define constraints group 3.21
         #    Market-clearing constraint: uncertainty in demand 
@@ -111,8 +111,7 @@ def decompose_problem(instance, mu, nu):
 
         # Define constraints group 3.34
         #    v[g, s, t] <= 1 for slow generators
-        problem.set_constraint_group("3.34")
-        problem += (v[Gs, s, :] <= 1)
+        #    Those constraints have been added during variables initialization
 
         # Define constraints group 3.36
         #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1] for fast generators
@@ -156,8 +155,7 @@ def decompose_problem(instance, mu, nu):
 
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators
-    problem.set_constraint_group("3.33")
-    problem += (z[Gs, :] <= 1)
+    #    Those constraints have been added during variables initialization
 
     # Define constraints group 3.35
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators

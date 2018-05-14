@@ -135,13 +135,11 @@ def create_formulation(instance, variables=None, lower_bound=None, relax=True):
     
     # Define constraints group 3.33
     #    z[g, t] <= 1 for slow generators
-    problem.set_constraint_group("3.33")
-    problem += (z[Gs, :] <= 1)
+    #    Those constraints have been added during variables initialization
 
     # Define constraints group 3.34
     #    v[g, s, t] <= 1 for slow generators
-    problem.set_constraint_group("3.34")
-    problem += (v[Gs, :, :] <= 1)
+    #    Those constraints have been added during variables initialization
 
     # Define constraints group 3.35
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators

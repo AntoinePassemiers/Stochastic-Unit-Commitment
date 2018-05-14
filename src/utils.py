@@ -7,8 +7,8 @@ import numpy as np
 import pulp
 
 
-# RELAXED_VARIABLES = ["U", "W"]
-RELAXED_VARIABLES = ["W"]
+RELAXED_VARIABLES = ["U", "W"]
+#RELAXED_VARIABLES = ["U"]
 
 def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
     """ Create a Numpy array of PuLP variables.
@@ -175,9 +175,9 @@ class SUCLpProblem(pulp.LpProblem):
         for name in self.constraints:
             c = self.constraints[name]
             sense = c.sense
-            intercept = c.getLb() if sense == 1 else c.getUb()
+            intercept = (c.getLb() if sense == 1 else c.getUb())
             var_ids = [all_var_ids[var.name] for var in c.keys()]
-            coefs = list(c.values())
+            coefs = np.asarray(list(c.values()))
             constraints.append((var_ids, coefs, sense, intercept))
             assert(sense in [1, 0, -1] and intercept is not None)
         return constraints

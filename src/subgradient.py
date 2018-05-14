@@ -24,7 +24,7 @@ def solve_subproblem(subproblem):
     #    (subproblem.name, exec_time, status))
 
 
-def solve_with_subgradient(instance, _lambda=2.):
+def solve_with_subgradient(instance, _lambda=0.2):
     PI = instance.PI
     Gs = instance.Gs
     K = instance.K
@@ -35,9 +35,11 @@ def solve_with_subgradient(instance, _lambda=2.):
     mu = np.zeros((instance.n_generators, instance.n_scenarios, instance.n_periods))
     nu = np.zeros((instance.n_generators, instance.n_scenarios, instance.n_periods))
 
+    LB, UB = -np.inf, np.inf
     for k in range(20):
         PP, P1, P2, ED, variables = decompose_problem(instance, mu, nu)
         (u, v, p, theta, w, z, e) = variables
+
         for s in range(instance.n_scenarios):
             # TODO: paralléliser
             solve_subproblem(P1[s])
@@ -46,6 +48,8 @@ def solve_with_subgradient(instance, _lambda=2.):
         L_k = P2.objective.value() if P2.objective.value() else 0
         for s in range(instance.n_scenarios):
             L_k += P1[s].objective.value()
+        if L_k > LB:
+            LB = L_k
 
         u_k = np.swapaxes(u[Gs, :, :].get_var_values(), 2, 1)
         v_k = np.swapaxes(v[Gs, :, :].get_var_values(), 2, 1)
@@ -60,6 +64,8 @@ def solve_with_subgradient(instance, _lambda=2.):
             solve_subproblem(ED[s])
 
         L_hat = PP.objective.value()
+        if L_hat < UB:
+            UB = L_hat
 
         """
         n_violated, groups_n_violated = PP.constraints_violated()
@@ -71,8 +77,8 @@ def solve_with_subgradient(instance, _lambda=2.):
                     group, groups_n_violated[group][0], groups_n_violated[group][1]))
         """
 
-        print("L_hat: %f, L_k: %f" % (L_hat, L_k))
-        alpha_k = -0.5*_lambda * (L_hat - L_k) / np.sum(PI**2 * (u_k - w_k)**2 + \
+        print("UB: %f, LB: %f" % (UB, LB))
+        alpha_k = - _lambda * (L_hat - L_k) / np.sum(PI**2 * (u_k - w_k)**2 + \
             PI**2 * (v_k - z_k)**2)
 
         mu[Gs, :, :] += alpha_k * np.swapaxes(PI * (w_k - u_k), 2, 1)
