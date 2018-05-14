@@ -42,6 +42,7 @@ def solve_problem(instance, relax=True):
     if problem.status == pulp.constants.LpStatusOptimal:
         print("Value of the objective: %f" % obj)
 
+    start = time.time()
     if args.round == "dive-and-fix": # TODO
 
         variables = problem.get_variables()
@@ -112,6 +113,8 @@ def solve_problem(instance, relax=True):
         #problem, u, w = create_formulation(instance, relax=False, lower_bound=1.1*obj)
         #problem.solve()
         #dive_and_fix(problem, variables)
+    
+    print("Rounding time: %f s" % (time.time() - start))
 
     n_violated, groups_n_violated = problem.constraints_violated()
     print("Number of violated constraints (python): %i" % n_violated)

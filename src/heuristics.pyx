@@ -18,6 +18,7 @@ from libc.stdio cimport printf
 from libc.stdlib cimport malloc, calloc, rand, RAND_MAX
 from libc.string cimport memcpy, memset
 cimport libc.math
+from cython.parallel import parallel, prange
 
 cdef double INF = <double>np.inf
 np_data_t = np.float
@@ -33,7 +34,6 @@ cdef struct constraint_t:
     data_t*    values    # Coefficients of the variables
     data_t     rhs       # Right-hand side of the constraint (intercept)
     int        sense     # Either 1, 0 or -1
-    int        satisfied # Whether it is currently satisfied
 
 
 cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
@@ -63,14 +63,12 @@ cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
     memcpy(constraint.values, &values[0], n_values * sizeof(data_t))
     constraint.rhs = rhs
     constraint.sense = sense
-    constraint.satisfied = 1
     return constraint
 
 
 cdef inline data_t __compute_value(constraint_t* constraint,
                                    data_t* solution,
-                                   data_t eps,
-                                   bint oriented) nogil:
+                                   data_t eps) nogil:
     """
     Given a solution, compute a constraint's value.
     A constraint's value is non-negative if and only if the constraint is satisfied.
@@ -91,19 +89,15 @@ cdef inline data_t __compute_value(constraint_t* constraint,
     cdef data_t value
     cdef int i
     for i in range(constraint.n_values):
-        lhs += constraint.values[i] * \
-            solution[constraint.var_ids[i]]
+        lhs += constraint.values[i] * solution[constraint.var_ids[i]]
     if constraint.sense < 0:
         value = constraint.rhs + eps - lhs
     elif constraint.sense > 0:
         value = lhs + eps - constraint.rhs
     else: # Equality constraint
-        if not oriented:
-            value = -libc.math.fabs(lhs - constraint.rhs)
-            if value > -eps:
-                value = 0
-        else:
-            value = lhs + eps - constraint.rhs
+        value = -libc.math.fabs(lhs - constraint.rhs)
+        if value > -eps:
+            value = 0
     return value
 
 
@@ -121,8 +115,7 @@ cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data
     eps: data_t
         Numerical precision of the solution
     """
-    constraint.satisfied = (__compute_value(constraint, solution, eps, False) >= 0)
-    return constraint.satisfied
+    return __compute_value(constraint, solution, eps) >= 0
 
 
 cdef int __constraints_violated(data_t* solution,
@@ -192,7 +185,7 @@ cdef void __round_solution(data_t[::1] solution,
         proba = np.zeros(n_constraints, dtype=np.float)
         values = np.zeros(n_constraints, dtype=np.float)
         for j in range(n_constraints):
-            values[j] = __compute_value(&constraints[j], &rounded[0], eps, False)
+            values[j] = __compute_value(&constraints[j], &rounded[0], eps)
             values[j] = 0 if values[j] >= 0 else values[j]
             proba[j] = np.abs(values[j])
         proba /= proba.sum()
@@ -280,7 +273,7 @@ cdef class CyProblem:
     def round_ga(self, solution, int_mask,
                  int max_n_iter=700, int part_size=30, int n_mutations=50, int pop_size=50):
         assert(2 * part_size <= pop_size)
-        cdef int a, b, c, i, j, k, d, alpha
+        cdef int a, b, c, i, j, k, d, alpha, pp
         cdef int n_variables = len(solution)
         cdef data_t[::1] _solution = np.ascontiguousarray(np.copy(solution), dtype=np_data_t)
         cdef cnp.int_t[::1] int_indices = np.ascontiguousarray(np.where(int_mask)[0], dtype=np.int)
@@ -298,10 +291,10 @@ cdef class CyProblem:
                 population[i][int_indices[j]] = (_solution[int_indices[j]] > (rand() / RAND_MAX))
         cdef data_t* child
 
-        with nogil:
+        with nogil, parallel():
             for k in range(max_n_iter):
                 shuffle(population, pop_size)
-                for i in range(pop_size):
+                for i in prange(pop_size):
                     F[i] = __fitness(
                         population[i],
                         self.constraints,
@@ -319,7 +312,7 @@ cdef class CyProblem:
 
                 c = find_worst_member(&F[0], pop_size) # Child replaces worst member
 
-                for j in range(n_relaxed):
+                for j in prange(n_relaxed):
                     alpha = ((rand() / RAND_MAX) < 0.5)
                     population[c][int_indices[j]] = alpha * population[a][int_indices[j]] + \
                         (1 - alpha) * population[b][int_indices[j]]
