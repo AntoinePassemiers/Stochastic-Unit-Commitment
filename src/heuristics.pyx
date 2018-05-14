@@ -150,8 +150,11 @@ cdef double __fitness(data_t* solution,
     with nogil:
         for i in range(n_constraints):
             if not __is_satisfied(&constraints[i], solution, eps):
+                """
                 fitness -= libc.math.fabs(
                     __compute_value(&constraints[i], solution, eps, False))
+                """
+                fitness -= 1
     return fitness
 
 
@@ -222,12 +225,8 @@ cdef class CyProblem:
         return __constraints_violated(&solution_buf[0], self.constraints,
             self.n_constraints, self.eps)
     
-    def round(self, solution, int_mask, eps=1e-04):
-        rounded = np.copy(solution)
-        __round_solution(solution, rounded, np.asarray(int_mask, dtype=np.uint8),
-            self.constraints, self.n_constraints, eps=eps)
-
-        pop_size = 500
+    def round_ga(self, solution, int_mask,
+                 eps=1e-04, max_n_iter=700, part_size=30, n_mutations=50, pop_size=50):
         population = list()
         for i in range(pop_size):
             member = np.copy(solution)
@@ -237,7 +236,7 @@ cdef class CyProblem:
         cdef cnp.int_t[::1] __int_mask = np.asarray(int_mask, dtype=np.int)        
         cdef data_t[::1] member_buf
     
-        for j in range(10000):
+        for j in range(max_n_iter):
             random.shuffle(population)
             F = list()
             for i in range(pop_size):
@@ -251,11 +250,10 @@ cdef class CyProblem:
                     return np.asarray(member_buf)
                 F.append(fitness)
             F = np.asarray(F)
-            print(F.max())
+            #print(F.max())
 
             indices = np.arange(pop_size)
             np.random.shuffle(indices)
-            part_size = 30
             a = indices[np.argmax(F[indices[:part_size]])]
             b = indices[np.argmax(F[indices[part_size:2*part_size]]) + part_size]
 
@@ -264,11 +262,12 @@ cdef class CyProblem:
             #print(j, a, len(int_mask), len(population[a]))
             child[int_mask] = alpha * population[a][int_mask] + (1 - alpha) * population[b][int_mask]
 
-            for d in range(50):
+            for d in range(n_mutations):
                 pp = np.random.randint(0, np.sum(int_mask))
                 child[__int_mask][pp] = 1 - child[__int_mask][pp]
 
             c = np.argmin(F)
             population[c] = child
         
-        return population[a]
+        print(fitness, population[np.argmax(F)][int_mask].sum())
+        return population[np.argmax(F)]

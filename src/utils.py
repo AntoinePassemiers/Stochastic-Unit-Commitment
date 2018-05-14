@@ -141,6 +141,13 @@ class SUCLpProblem(pulp.LpProblem):
                 groups_n_violated[self.groups[i]] = [0, 0]
             constraint = self.constraints[name]
             if not (constraint.valid() or abs(constraint.value()) < eps):
+                """
+                if self.groups[i] == "3.36": # TO REMOVE
+                    print(constraint)
+                    values = {var.name: var.varValue for var in constraint.keys()}
+                    print(values)
+                """
+
                 n_violated += 1
                 if self.groups[i] in groups_n_violated.keys():
                     groups_n_violated[self.groups[i]][0] += 1

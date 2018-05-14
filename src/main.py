@@ -28,7 +28,7 @@ except ImportError:
 
 def solve_problem(instance, relax=True):
     # Formulate the LP relaxation for the given instance
-    problem, variables = create_formulation(instance, relax=relax)
+    problem, (u, v, p, theta, w, z, e) = create_formulation(instance, relax=relax)
 
     # Solve LP relaxation
     print("Solving problem...")
@@ -42,15 +42,72 @@ def solve_problem(instance, relax=True):
     if problem.status == pulp.constants.LpStatusOptimal:
         print("Value of the objective: %f" % obj)
 
-    print(problem.is_integer_solution())
     if args.round == "dive-and-fix": # TODO
+
         variables = problem.get_variables()
         int_mask = [var.name[0] in RELAXED_VARIABLES for var in variables]
         solution = problem.get_var_values()
         constraints = problem.get_constraints_as_tuples()
         cp = heuristics.CyProblem(constraints)
-        rounded = cp.round(solution, int_mask)
+        rounded = cp.round_ga(
+            solution,
+            int_mask,
+            max_n_iter=1000,
+            part_size=2,
+            n_mutations=50,
+            pop_size=100)
         problem.set_var_values(rounded)
+
+        n_violated, _ = problem.constraints_violated()
+        last = n_violated
+        complicated = False
+        max_n_iter = 15
+        n_iter = 0
+        while n_violated > 0 and n_iter < max_n_iter:
+            n_iter += 1
+
+            for i, name in enumerate(problem.constraints):
+                group = problem.groups[i]
+                c = problem.constraints[name]
+                if not (c.valid() or abs(c.value()) < 1e-04):
+                    for var in c.keys():
+                        if group == "3.26":
+                            if "P" in var.name:
+                                var.upBound = var.lowBound = var_value = var.varValue + abs(c.value())
+                        elif group == "3.25":
+                            if "U" in var.name:
+                                var.upBound = var.lowBound = var_value = 1
+                        if complicated:
+                            if group == "3.36":
+                                if "V" in var.name:
+                                    var.upBound = var.lowBound = var_value = 1
+                            elif group == "3.35":
+                                if "Z" in var.name:
+                                    var.upBound = var.lowBound = var_value = 1
+
+            problem.solve()
+
+            solution = problem.get_var_values()
+            cp = heuristics.CyProblem(constraints)
+            rounded = cp.round_ga(
+                solution,
+                int_mask,
+                max_n_iter=1000,
+                part_size=2,
+                n_mutations=50,
+                pop_size=100)
+            problem.set_var_values(rounded)
+
+            n_violated, _ = problem.constraints_violated()
+            if n_violated == last:
+                complicated = True
+            last = n_violated
+
+        obj = problem.objective.value()
+        print("Value of the objective: %f" % obj)
+        print("Is integer: ", problem.is_integer_solution())
+
+
         
         #problem, u, w = create_formulation(instance, relax=False, lower_bound=1.1*obj)
         #problem.solve()
