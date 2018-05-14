@@ -47,8 +47,9 @@ def solve_problem(instance, relax=True):
         variables = problem.get_variables()
         int_mask = [var.name[0] in RELAXED_VARIABLES for var in variables]
         solution = problem.get_var_values()
-        constraints = problem.get_constraints_as_tuples()
-        cp = heuristics.CyProblem(constraints)
+        cy_constraints = problem.get_constraints_as_tuples(
+            groups=["3.25", "3.26", "3.29", "3.30", "3.31", "3.32", "3.35", "3.36", "3.37"])
+        cp = heuristics.CyProblem(cy_constraints)
         rounded = cp.round_ga(
             solution,
             int_mask,
@@ -88,7 +89,6 @@ def solve_problem(instance, relax=True):
             problem.solve()
 
             solution = problem.get_var_values()
-            cp = heuristics.CyProblem(constraints)
             rounded = cp.round_ga(
                 solution,
                 int_mask,

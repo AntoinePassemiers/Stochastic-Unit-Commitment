@@ -162,7 +162,7 @@ class SUCLpProblem(pulp.LpProblem):
                 fitness += abs(constraint.value())
         return fitness
     
-    def get_constraints_as_tuples(self):
+    def get_constraints_as_tuples(self, groups=None):
         """ Get list of constraints in a non-PuLP format.
 
         Each constraint is represented as a tuple containing:
@@ -179,14 +179,16 @@ class SUCLpProblem(pulp.LpProblem):
         """
         all_var_ids = {var.name: i for i, var in enumerate(list(self.variables()))}
         constraints = list()
-        for name in self.constraints:
-            c = self.constraints[name]
-            sense = c.sense
-            intercept = (c.getLb() if sense == 1 else c.getUb())
-            var_ids = [all_var_ids[var.name] for var in c.keys()]
-            coefs = np.asarray(list(c.values()))
-            constraints.append((var_ids, coefs, sense, intercept))
-            assert(sense in [1, 0, -1] and intercept is not None)
+        for i, name in enumerate(self.constraints):
+            group = self.groups[i]
+            if groups is None or group in groups:
+                c = self.constraints[name]
+                sense = c.sense
+                intercept = (c.getLb() if sense == 1 else c.getUb())
+                var_ids = [all_var_ids[var.name] for var in c.keys()]
+                coefs = np.asarray(list(c.values()))
+                constraints.append((var_ids, coefs, sense, intercept))
+                assert(sense in [1, 0, -1] and intercept is not None)
         return constraints
     
     def get_variables(self):
