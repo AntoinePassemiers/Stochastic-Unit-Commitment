@@ -16,11 +16,12 @@ import argparse
 import random
 import pulp
 import numpy as np
+import matplotlib.pyplot as plt
 
 try:
     import pyximport
     pyximport.install(setup_args={'include_dirs': np.get_include()})
-    import heuristics
+    import genetic
 except ImportError:
     print("You definitely should install Cython.")
     sys.exit(0)
@@ -43,66 +44,76 @@ def solve_problem(instance, relax=True):
         print("Value of the objective: %f" % obj)
 
     start = time.time()
-    if args.round == "dive-and-fix": # TODO
+    if args.round == "evolve-and-fix":
 
         variables = problem.get_variables()
         int_mask = [var.name[0] in RELAXED_VARIABLES for var in variables]
         solution = problem.get_var_values()
         cy_constraints = problem.get_constraints_as_tuples(
             groups=["3.25", "3.26", "3.29", "3.30", "3.31", "3.32", "3.35", "3.36", "3.37"])
-        cp = heuristics.CyProblem(cy_constraints)
-        rounded = cp.round_ga(
-            solution,
-            int_mask,
-            max_n_iter=1000,
-            part_size=2,
-            n_mutations=50,
-            pop_size=100)
+        cp = genetic.CyProblem(cy_constraints)
+
+        max_n_iter = 10000
+        part_size = 2
+        n_mutations = 120
+        pop_size = 100
+
+        rounded, fitness = cp.round_ga(solution, int_mask, max_n_iter=max_n_iter,
+            part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
         problem.set_var_values(rounded)
 
         n_violated, _ = problem.constraints_violated()
         last = n_violated
-        complicated = False
-        max_n_iter = 15
+        stage = 0
+        max_n_iter = 50
         n_iter = 0
-        while n_violated > 0 and n_iter < max_n_iter:
+        fitness_history = list()
+        only_3_32_constraints = False
+        while n_violated > 0 and not only_3_32_constraints:
             n_iter += 1
 
+            only_3_32_constraints = True
             for i, name in enumerate(problem.constraints):
                 group = problem.groups[i]
                 c = problem.constraints[name]
                 if not (c.valid() or abs(c.value()) < 1e-04):
                     for var in c.keys():
-                        if group == "3.26":
+                        if group in ["3.26", "3.25", "3.36", "3.35"]:
+                            only_3_32_constraints = False
+                        if group == "3.26" and stage >= 1:
                             if "P" in var.name:
                                 var.upBound = var.lowBound = var_value = var.varValue + abs(c.value())
-                        elif group == "3.25":
+                        if group == "3.25" and stage >= 0:
                             if "U" in var.name:
                                 var.upBound = var.lowBound = var_value = 1
-                        if complicated:
-                            if group == "3.36":
-                                if "V" in var.name:
+                        if group == "3.36" and stage >= 2:
+                            if "V" in var.name:
+                                if random.random() < 1 - abs(c.value()):
                                     var.upBound = var.lowBound = var_value = 1
-                            elif group == "3.35":
-                                if "Z" in var.name:
+                        if group == "3.35" and stage >= 2:
+                            if "Z" in var.name:
+                                if random.random() < 1 - abs(c.value()):
                                     var.upBound = var.lowBound = var_value = 1
-
             problem.solve()
 
             solution = problem.get_var_values()
-            rounded = cp.round_ga(
-                solution,
-                int_mask,
-                max_n_iter=1000,
-                part_size=2,
-                n_mutations=50,
-                pop_size=100)
+            rounded, fitness = cp.round_ga(solution, int_mask, max_n_iter=max_n_iter,
+                part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
             problem.set_var_values(rounded)
+            fitness_history.append(fitness)
+
+            print("Iteration %i - Fitness: %f" % (n_iter, fitness))
 
             n_violated, _ = problem.constraints_violated()
             if n_violated == last:
-                complicated = True
+                stage += 1
             last = n_violated
+        
+        if n_violated == -1:
+            print("[Warning] Evolve-and-fix heuristic failed")
+        else:
+            plt.plot(fitness_history)
+            plt.show()
 
         obj = problem.objective.value()
         print("Value of the objective: %f" % obj)
@@ -150,7 +161,7 @@ if __name__ == "__main__":
         help="Decompose problem using lagrangian duality")
     parser.add_argument(
         "--round",
-        choices=['dive-and-fix'],
+        choices=['evolve-and-fix'],
         help="Round solution using heuristic algorithms")
     args = parser.parse_args()
 

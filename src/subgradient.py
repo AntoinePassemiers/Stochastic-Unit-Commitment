@@ -16,15 +16,26 @@ def solve_subproblem(subproblem):
         subproblem (SUCLpProblem): Sub-problem to be solved
     """
     start = time.time()
+    print(subproblem.name)
     status = subproblem.solve()
-    assert(status == pulp.constants.LpStatusOptimal)
-    #assert(subproblem.status == pulp.constants.LpStatusOptimal)
+    #assert(status == pulp.constants.LpStatusOptimal)
+
+    if subproblem.status != pulp.constants.LpStatusOptimal:
+        n_violated, groups_n_violated = subproblem.constraints_violated()
+        print("Number of violated constraints: %i" % n_violated)
+        print(subproblem.is_integer_solution(), n_violated)
+        for group in groups_n_violated.keys():
+            if groups_n_violated[group][0] > 0:
+                print("Number of violated constraints of group %s: %i / %i" % (
+                    group, groups_n_violated[group][0], groups_n_violated[group][1]))
+        print("Problem status: %s" % pulp.LpStatus[subproblem.status])
+        assert(subproblem.status == pulp.constants.LpStatusOptimal)
     exec_time = time.time() - start
     #print("\tSub-problem %s - Solve time: %f s (status: %i)" % \
     #    (subproblem.name, exec_time, status))
 
 
-def solve_with_subgradient(instance, _lambda=0.2):
+def solve_with_subgradient(instance, _lambda=2., _epsilon=1000.0):
     PI = instance.PI
     Gs = instance.Gs
     K = instance.K
@@ -48,6 +59,10 @@ def solve_with_subgradient(instance, _lambda=0.2):
         L_k = P2.objective.value() if P2.objective.value() else 0
         for s in range(instance.n_scenarios):
             L_k += P1[s].objective.value()
+
+        if L_k == LB:
+            _lambda /= 2
+
         if L_k > LB:
             LB = L_k
 
@@ -61,25 +76,29 @@ def solve_with_subgradient(instance, _lambda=0.2):
                 for t in range(instance.n_periods):
                     w[g, t].lowBound = w[g, t].upBound = w[g, t].varValue
                     z[g, t].lowBound = z[g, t].upBound = z[g, t].varValue
+                    #u[g, s, t].lowBound = u[g, s, t].upBound = u[g, s, t].varValue
+                    #v[g, s, t].lowBound = v[g, s, t].upBound = v[g, s, t].varValue
             solve_subproblem(ED[s])
 
         L_hat = PP.objective.value()
         if L_hat < UB:
             UB = L_hat
 
-        """
         n_violated, groups_n_violated = PP.constraints_violated()
         print("Number of violated constraints: %i" % n_violated)
-        print(PP.is_integer_solution(), n_violated)
         for group in groups_n_violated.keys():
             if groups_n_violated[group][0] > 0:
                 print("Number of violated constraints of group %s: %i / %i" % (
                     group, groups_n_violated[group][0], groups_n_violated[group][1]))
-        """
 
         print("UB: %f, LB: %f" % (UB, LB))
-        alpha_k = - _lambda * (L_hat - L_k) / np.sum(PI**2 * (u_k - w_k)**2 + \
+        alpha_k = _lambda * (L_hat - L_k) / np.sum(PI**2 * (u_k - w_k)**2 + \
             PI**2 * (v_k - z_k)**2)
+        
+        # print(np.swapaxes(PI * (z_k - v_k), 2, 1))
 
-        mu[Gs, :, :] += alpha_k * np.swapaxes(PI * (w_k - u_k), 2, 1)
-        nu[Gs, :, :] += alpha_k * np.swapaxes(PI * (z_k - v_k), 2, 1)
+        mu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (w_k - u_k), 2, 1)
+        nu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (z_k - v_k), 2, 1)
+
+        if UB - LB <= _epsilon:
+            break

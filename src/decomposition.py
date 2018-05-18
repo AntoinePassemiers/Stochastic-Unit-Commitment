@@ -126,11 +126,11 @@ def decompose_problem(instance, mu, nu):
         #    Those constraints have been added during variables initialization
 
 
-    P2 = problem = SUCLpProblem("P2", pulp.LpMaximize)
+    P2 = problem = SUCLpProblem("P2", pulp.LpMinimize)
 
     # Define objective function for each s:
     #    - sum_Gs sum_s sum_t PI[s] * (mu[g, s, t] * w[g, t] + nu[g, s, t] * z[g, t])
-    problem += np.sum(PI * np.transpose(
+    problem += -np.sum(PI * np.transpose(
         np.transpose(mu[Gs, :, :], (1, 0, 2)) * w[Gs, :] + \
         np.transpose(nu[Gs, :, :], (1, 0, 2)) * z[Gs, :], (1, 2, 0)))
 
@@ -161,6 +161,7 @@ def decompose_problem(instance, mu, nu):
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
     problem += z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1]
+    problem += z[Gs, 0] >= w[Gs, 0] # TODO?
 
     # Define constraints group 3.40
     #    For slow generators:
@@ -216,17 +217,17 @@ def decompose_problem(instance, mu, nu):
 
         # Define constraints group 3.28
         #    p[g, s, t-1] - p[g, s, t] <= R_minus[g]
-        problem.set_constraint_group("3.28")
+        problem.set_constraint_group("3.10")
         problem += ((p[:, s, :-1] - p[:, s, 1:]).T <= R_minus)
 
         # Define constraints group 3.23
         #    e[l, s, t] <= TC[l]
-        problem.set_constraint_group("3.23")
+        problem.set_constraint_group("3.3")
         problem += (e[:, s, :].T <= TC)
 
         # Define constraints group 3.24
         #    -TC[l] <= e[l, s, t]
-        problem.set_constraint_group("3.24")
+        problem.set_constraint_group("3.4")
         problem += (-TC <= e[:, s, :].T)
 
         # Define constraints group 3.49
@@ -235,6 +236,9 @@ def decompose_problem(instance, mu, nu):
         #    z[g, t] >= 0
         #    w[g, t] in {0, 1}
         #    Those constraints have been added during variables initialization
+        problem += (w >= 0)
+        problem += (z >= 0)
+
 
 
     return PP, P1, P2, ED, variables

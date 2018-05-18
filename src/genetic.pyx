@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# heuristics.pyx: Genetic algorithm for increasing the number
+# genetic.pyx: Genetic algorithm for increasing the number
 #                 of satisfied constraints from an initial solution
 # authors: Antoine Passemiers, Cedric Simar
 # distutils: language=c
@@ -153,11 +153,9 @@ cdef double __fitness(data_t* solution,
     cdef int i
     for i in range(n_constraints):
         if not __is_satisfied(&constraints[i], solution, eps):
-            """
             fitness -= libc.math.fabs(
-                __compute_value(&constraints[i], solution, eps, False))
-            """
-            fitness -= 1
+                __compute_value(&constraints[i], solution, eps))
+            # fitness -= 1
     return fitness
 
 
@@ -271,7 +269,7 @@ cdef class CyProblem:
             self.n_constraints, self.eps)
     
     def round_ga(self, solution, int_mask,
-                 int max_n_iter=700, int part_size=30, int n_mutations=50, int pop_size=50):
+                 int max_n_iter=100, int part_size=30, int n_mutations=50, int pop_size=50):
         assert(2 * part_size <= pop_size)
         cdef int a, b, c, i, j, k, d, alpha, pp
         cdef int n_variables = len(solution)
@@ -321,7 +319,5 @@ cdef class CyProblem:
                     pp = rand() % n_relaxed
                     population[c][int_indices[pp]] = 1 - population[c][int_indices[pp]]
             
-        print(np.max(F))
-
         memcpy(&_solution[0], population[np.argmax(F)], n_variables * sizeof(data_t))
-        return np.asarray(_solution)
+        return np.asarray(_solution), np.max(F)
