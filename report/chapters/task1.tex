@@ -1,6 +1,34 @@
 \chapterwithsubtitle{Tâche 1}{Résoudre la relaxation linéaire de la Formulation SUC}
 \vspace*{1.2cm}
 
-\section{qjsqd}
+\section{Relaxation linéaire}
 
-qldjqsijd
+La relaxation linéaire du modèle utilisé \footnote{A. Papavasiliou. Coupling Renewable Energy Supply with Deferrable Demand. PhD thesis,
+University of California, Berkeley, 2011, pg 22} peut être formulée ainsi:\\\\
+
+\begin{tabularx}{\textwidth}{l X r r}
+(RL) \hspace{1cm} min \ $\sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g u_{gst} + S_g v_{gst} + C_g p_{gst})$ & & (3.20) \\\\
+t.q. & \\\\
+$\sum\limits_{l \in LI_n} e_{lst} + \sum\limits_{g \in G_n} p_{gst} = D_{nst} + \sum\limits_{l \in LO_n} e_{lst}$ & $\forall n \in N, s \in S, t \in T$ & (3.21) \\
+$e_{lst} = B_{ls} (\theta_{nst} - \theta_{mst})$ & $\forall l = (m, n) \in L, s \in S, t \in T$ & (3.22) \\
+$e_{lst} \le TC_l$ & $\forall l \in L, s \in S, t \in T$ & (3.23) \\
+$-TC_l \le e_{lst}$ & $\forall l \in L, s \in S, t \in T$ & (3.24) \\
+$p_{gst} \le P_{gs}^{+} u_{gst}$ & $\forall g \in G, s \in S, t \in T$ & (3.25) \\
+$P_{sg}^{-} u_{gst} \le p_{gst}$ & $\forall g \in G, s \in S, t \in T$ & (3.26) \\
+$p_{gst} - p_{gs,t-1} \le R_g^{+}$ & $\forall g \in G, s \in S, t \in T$ & (3.27) \\
+$p_{gs,t-1} - p_{gst} \le R_g^{-}$ & $\forall g \in G, s \in S, t \in T$ & (3.28) \\
+$\sum\limits_{q=t-UT_g+1}^{t} z_{gq} \le w_{gt}$ & $\forall g \in G_s, t \ge UT_g$ & (3.29) \\
+$\sum\limits_{q=t+1}^{t+DT_g} z_{gq} \le 1 - w_{gt}$ & $\forall g \in G_s, t \le N - DT_g$ & (3.30) \\
+$\sum\limits_{q=t-UT_g+1}^{t} v_{gsq} \le u_{gst}$ & $\forall g \in G_f, t \ge UT_g$ & (3.31) \\
+$\sum\limits_{q=t+1}^{t+DT_g} v_{gsq} \le 1 - u_{gst}$ & $\forall g \in G_f, t \le N - DT_g$ & (3.32) \\
+$z_{gt} \le 1$ & $\forall g \in G_s, t \in T$ & (3.33) \\
+$v_{gst} \le 1$ & $\forall s \in S, t \in T$ & (3.34) \\
+$z_{gt} \ge w_{gt} - w_{g,t-1}$ & $\forall g \in G_s, t \in T$ & (3.35) \\
+$v_{gst} \le u_{gst} - u_{gs,t-1}$ & $\forall g \in G_f, s \in S, t \in T$ & (3.36) \\
+$\pi_s u_{gst} = \pi_s w_{gt}$ & $\forall g \in G_s, s \in S, t \in T$ & (3.37) \\
+$\pi_s v_{gst} = \pi_s z_{gt}$ & $\forall g \in G_s, s \in S, t \in T$ & (3.38) \\
+$p_{gst} \ge 0, \ 0 \le u_{gst} \le 1$ & $\forall g \in G, s \in S, t \in T$ & (3.39) \\
+$z_{gt} \ge 0, \ 0 \le w_{gt} \le 1$ & $g \in G_s, t \in T$ & (3.40) \\
+\end{tabularx}
+
+\vspace{2cm}
