@@ -32,3 +32,30 @@ $z_{gt} \ge 0, \ 0 \le w_{gt} \le 1$ & $g \in G_s, t \in T$ & (3.40) \\
 \end{tabularx}
 
 \vspace{2cm}
+
+\subsection{Incertitudes du modèle}
+
+\begin{itemize}
+    \item Les contraintes (3.21) d'équilibre de marché imposent que la production d'énergie satisfasse la demande étant donné les niveaux de puissance
+    assignés aux lignes de transmission.
+    \item Les contraintes (3.22) sont obtenues à partir de la première loi de Kirchhoff (loi des noeuds) et de la seconde loi de Kirchhoff
+    (loi des mailles). La susceptance y sert à modéliser la puissance lorsque les lignes sont parcourues par un courant continue.
+    Les lignes du réseau peuvent être soumises à des contingences, symbolisées par les susceptances des lignes.
+    Lorsqu'une ligne de transmission $l$ est mise hors service dans un scénario $s$, la susceptance associée $B_{ls}$ est fixée à 0.
+    \item Les contraintes de types (3.25) et (3.26) tiennent compte des contingences liées aux générateurs eux-mêmes.
+    Dans tout scénario $s$ où un générateur $g$ est hors usage, les constantes $P_{gs}^{+}$ et $P_{gs}^{-}$ sont fixées à 0 afin de forcer
+    la production à 0.
+\end{itemize}
+
+\subsection{Non-anticipativité}
+
+Les contraintes (3.37) et (3.38) de non-anticipativité permettent de forcer la planification des générateurs lents établie lors de la seconde phase
+à respecter celle effectuée pour ces mêmes générateurs lors de la première phase. En effet les contingences peuvent être énumérées (d'où la présence
+de scénarios) mais ne peuvent avoir de caratère certain. L'engagement des générateurs lents doit donc être le même dans tous les scénarios,
+d'où les contraintes d'égalité. Étant donné que les variables $w_{gt}$ et $z{gt}$ sont définies pour les générateurs lents
+et les variables $u_{gst}$ et $v_{gst}$ pour tous les générateurs, $u_{gst}$ et $v_{gst}$ sont redondantes pour les générateurs lents.
+
+Cette redondance n'est justifiée que par l'utilisation de la relaxation lagrangienne et la dualisation des contraintes de non-anticipativité, car
+elle permet de borner les sous-problèmes produits par la décomposition lagrangienne. En l'absence d'une telle relaxation il convient alors de retirer 
+de la modélisation les variables $u_{gst}$ et $v_{gst}$ associées aux générateurs lents. Puisque nous avons gardé la même approche qu'Anthony Papavasiliou
+pour la décomposition lagrangienne, toutes les variables ont été gardées.
