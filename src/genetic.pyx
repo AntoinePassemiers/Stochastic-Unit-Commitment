@@ -13,13 +13,13 @@ cimport numpy as cnp
 cnp.import_array()
 
 import random
-
 from libc.stdio cimport printf
 from libc.stdlib cimport malloc, calloc, rand, RAND_MAX
 from libc.string cimport memcpy, memset
 cimport libc.math
 from cython.parallel import parallel, prange
 
+# Typedefs and module constants
 cdef double INF = <double>np.inf
 np_data_t = np.float
 ctypedef cnp.float_t data_t
@@ -28,31 +28,30 @@ ctypedef fused shuffable:
     data_ptr_t
     cnp.int_t
 
+# Constraint struct
 cdef struct constraint_t:
     int        n_values  # Size of var_ids and values
     cnp.int_t* var_ids   # Identifiers of the variables involved
     data_t*    values    # Coefficients of the variables
     data_t     rhs       # Right-hand side of the constraint (intercept)
-    int        sense     # Either 1, 0 or -1
+    int        sense     # Either 1 (>=), 0 (==) or -1 (<=)
 
 
 cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
                                       data_t[::1] values,
                                       int sense,
                                       data_t rhs):
-    """
-    Create a C struct constraint from python constraint.
+    """ Create a C struct constraint from python constraint.
     
-    Parameters
-    ----------
-    var_ids: cnp.int_t[::1]
-        Identifiers of the variables involved in the constraint
-    values: data_t[::1]
-        Coefficients of the variables involved
-    sense: int
-        Sense is "lhs >= rhs" if 1 else "lhs <= rhs"
-    rhs: data_t
-        Right-hand side of the constraint (intercept)
+    Args:
+        var_ids(cnp.int_t[::1]):
+            Identifiers of the variables involved in the constraint
+        values(data_t[::1]):
+            Coefficients of the variables involved
+        sense (int):
+            Sense is "lhs >= rhs" if 1 else "lhs <= rhs"
+        rhs (data_t):
+            Right-hand side of the constraint (intercept)
     """
     cdef constraint_t constraint
     cdef int n_values = var_ids.shape[0]
@@ -69,21 +68,19 @@ cdef constraint_t __create_constraint(cnp.int_t[::1] var_ids,
 cdef inline data_t __compute_value(constraint_t* constraint,
                                    data_t* solution,
                                    data_t eps) nogil:
-    """
-    Given a solution, compute a constraint's value.
+    """ Given a solution, compute a constraint's value.
     A constraint's value is non-negative if and only if the constraint is satisfied.
 
-    Parameters
-    ----------
-    constraint: constraint_t
-        Constraint to be evaluated
-    solution: data_t*
-        Current solution to the problem. Its size is equal to the number
-        of variables in the problem instance.
-    eps: data_t
-        Numerical precision of the solution
-    oriented: bint
-        Whether to return a signed value in case of an equality constraint
+    Args:
+        constraint (constraint_t):
+            Constraint to be evaluated
+        solution: data_t*
+            Current solution to the problem. Its size is equal to the number
+            of variables in the problem instance.
+        eps: data_t
+            Numerical precision of the solution
+        oriented: bint
+            Whether to return a signed value in case of an equality constraint
     """
     cdef data_t lhs = 0
     cdef data_t value
@@ -102,18 +99,16 @@ cdef inline data_t __compute_value(constraint_t* constraint,
 
 
 cdef inline bint __is_satisfied(constraint_t* constraint, data_t* solution, data_t eps) nogil:
-    """
-    Given a solution, check whether a constraint is satisfied.
+    """ Given a solution, check whether a constraint is satisfied.
 
-    Parameters
-    ----------
-    constraint: constraint_t
-        Constraint to be evaluated
-    solution: data_t*
-        Current solution to the problem. Its size is equal to the number
-        of variables in the problem instance.
-    eps: data_t
-        Numerical precision of the solution
+    Args:
+        constraint (constraint_t):
+            Constraint to be evaluated
+        solution (data_t*):
+            Current solution to the problem. Its size is equal to the number
+            of variables in the problem instance.
+        eps (data_t):
+            Numerical precision of the solution
     """
     return __compute_value(constraint, solution, eps) >= 0
 
@@ -122,20 +117,18 @@ cdef int __constraints_violated(data_t* solution,
                                 constraint_t* constraints,
                                 int n_constraints,
                                 data_t eps) nogil:
-    """
-    Given a solution, check whether a set of constraints is satisfied.
+    """ Given a solution, check whether a set of constraints is satisfied.
 
-    Parameters
-    ----------
-    solution: data_t*
-        Current solution to the problem. Its size is equal to the number
-        of variables in the problem instance.
-    constraints: constraint_t
-        Constraints to be evaluated
-    n_constraints: int
-        Number of constraints
-    eps: data_t
-        Numerical precision of the solution
+    Args:
+        solution (data_t*):
+            Current solution to the problem. Its size is equal to the number
+            of variables in the problem instance.
+        constraints (constraint_t):
+            Constraints to be evaluated
+        n_constraints (int):
+            Number of constraints
+        eps (data_t):
+            Numerical precision of the solution
     """
     cdef int n_violated = 0
     cdef int i
@@ -149,61 +142,59 @@ cdef double __fitness(data_t* solution,
                      constraint_t* constraints,
                      int n_constraints,
                      data_t eps) nogil:
+    """ Compute the fitness of an individual/solution.
+
+    Args:
+        solution (data_t*):
+            Individual/solution to be evaluated
+        constraints (constraint_t):
+            Constraints that should be satisfied
+        n_constraints (int):
+            Number of constraints
+        eps (data_t):
+            Numerical precision of the solution
+    """
     cdef double fitness = 0.0
     cdef int i
     for i in range(n_constraints):
         if not __is_satisfied(&constraints[i], solution, eps):
+            # Add to fitness in how much the constraint is violated
+            """
             fitness -= libc.math.fabs(
                 __compute_value(&constraints[i], solution, eps))
-            # fitness -= 1
+            """
+            fitness -= 1
     return fitness
 
 
 cdef void __round_closest(data_t[::1] solution,
                           cnp.uint8_t[::1] int_mask):
+    """ Round each undesired fractional variable to the closest integer value.
+
+    Args:
+        solution (data_t*):
+            Current solution to the problem. Its size is equal to the number
+            of variables in the problem instance.
+        constraints (constraint_t):
+            Constraints to be evaluated
+        n_constraints (int):
+            Number of constraints
+        eps (data_t):
+            Numerical precision of the solution
+    """
     for i in range(solution.shape[0]):
         if int_mask[i]:
             solution[i] = libc.math.round(solution[i])
 
 
-cdef void __round_solution(data_t[::1] solution,
-                           data_t[::1] rounded,
-                           cnp.uint8_t[::1] int_mask,
-                           constraint_t* constraints,
-                           int n_constraints,
-                           data_t eps):
-    cdef int n_violated, best
-    cdef int i, j, k, l, h
-    cdef cnp.float_t[:] values
+cdef void shuffle(shuffable* arr, size_t length) nogil:
+    """ Shuffle sequence, either identifiers or pointers to solutions.
 
-    __round_closest(rounded, int_mask)
-
-    n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
-    for k in range(20):
-        proba = np.zeros(n_constraints, dtype=np.float)
-        values = np.zeros(n_constraints, dtype=np.float)
-        for j in range(n_constraints):
-            values[j] = __compute_value(&constraints[j], &rounded[0], eps)
-            values[j] = 0 if values[j] >= 0 else values[j]
-            proba[j] = np.abs(values[j])
-        proba /= proba.sum()
-        h = np.random.choice(np.arange(n_constraints), p=proba)
-
-        with nogil:
-            for j in range(constraints[h].n_values):
-                l = constraints[h].var_ids[j]
-                if constraints[h].sense == 1:
-                    rounded[l] -= values[h] * constraints[h].values[j]
-                elif constraints[h].sense == 0:
-                    rounded[l] -= values[h] * constraints[h].values[j]
-                else:
-                    rounded[l] += values[h] * constraints[h].values[j]
-        __round_closest(rounded, int_mask)
-        n_violated = __constraints_violated(&rounded[0], constraints, n_constraints, eps)
-
-
-cdef void shuffle(shuffable* population, size_t pop_size) nogil:
-    """
+    Args:
+        arr (shufflable*):
+            Array or shufflable elements
+        length (size_t):
+            Length of the shufflable array
 
     References:
         Shuffling algorithm inspired by Ben Pfaff's
@@ -212,15 +203,24 @@ cdef void shuffle(shuffable* population, size_t pop_size) nogil:
     """
     cdef int i, j
     cdef shuffable tmp
-    if pop_size > 1:
-        for i in range(pop_size - 1):
-            j = i + rand() / (RAND_MAX / (pop_size - i) + 1)
-            tmp = population[j]
-            population[j] = population[i]
-            population[i] = tmp
+    if length > 1:
+        for i in range(length - 1):
+            j = i + rand() / (RAND_MAX / (length - i) + 1)
+            tmp = arr[j]
+            arr[j] = arr[i]
+            arr[i] = tmp
 
 
-cdef inline cnp.int_t find_worst_member(double* F, int pop_size) nogil:
+cdef inline cnp.int_t find_worst_member(cnp.double_t* F, int pop_size) nogil:
+    """ Find the identifier of the less adapted individual.
+    This is basically an argmin function.
+
+    Args:
+        F (cnp.double_t*):
+            Sequence of values where F[i] is the fitness of individual i
+        pop_size (int):
+            Population size
+    """
     cdef double worst_value = INF
     cdef int worst_index = 0
     cdef int i
@@ -235,6 +235,20 @@ cdef int tournament(cnp.double_t* F,
                     cnp.int_t* indices,
                     int partition_start,
                     int partition_end) nogil:
+    """ Make a tournament with a partition of the population.
+    The individuals identifiers involved in the tournament
+    are given by indices[i] for i in {partition_start, ..., partition_end}.
+
+    Args:
+        F (cnp.double_t*):
+            Sequence of values where F[i] is the fitness of individual i
+        indices (cnp.int_t*):
+            Shuffled individuals indices
+        partition_start (int):
+            First identifier is given by indices[partition_start]
+        partition_end (int):
+            Last identifier is given by indices[partition_end]
+    """
     cdef cnp.double_t best_value = -INF
     cdef int best_index = 0
     for i in range(partition_start, partition_end):
@@ -245,6 +259,31 @@ cdef int tournament(cnp.double_t* F,
 
 
 cdef class CyProblem:
+    """ Minimal representation of a linear problem.
+
+    Args:
+        constraints (list):
+            List of python constraints.
+            Each constraint is represented as a tuple containing:
+                var_ids: list
+                    The (integer) identifiers of the variables involved in the constraint
+                coefs: list
+                    The values corresponding to the variables in var_ids
+                sense: int
+                    Inequality sense, where the inequality is of the form 
+                    Sum_i coef_i*var_i sense intercept.
+                    1 stands for ">=", -1 for "<=", and 0 for"==".
+                intercept: float, int
+                    Constant right-hand side of the inequality
+        eps (:obj:`float`, optional):
+            Numerical precision of the solution
+    
+    Attributes:
+        n_constraints (int):
+            Number of constraints
+        n_variables (int):
+            Number of variables
+    """
 
     cdef int n_constraints
     cdef constraint_t* constraints
@@ -268,7 +307,7 @@ cdef class CyProblem:
         return __constraints_violated(&solution_buf[0], self.constraints,
             self.n_constraints, self.eps)
     
-    def round_ga(self, solution, int_mask,
+    def round(self, solution, int_mask,
                  int max_n_iter=100, int part_size=30, int n_mutations=50, int pop_size=50):
         assert(2 * part_size <= pop_size)
         cdef int a, b, c, i, j, k, d, alpha, pp
@@ -293,11 +332,7 @@ cdef class CyProblem:
             for k in range(max_n_iter):
                 shuffle(population, pop_size)
                 for i in prange(pop_size):
-                    F[i] = __fitness(
-                        population[i],
-                        self.constraints,
-                        self.n_constraints,
-                        self.eps)
+                    F[i] = __fitness(population[i], self.constraints, self.n_constraints, self.eps)
                     if F[i] >= 0.0:
                         feasible = True
                 if feasible:

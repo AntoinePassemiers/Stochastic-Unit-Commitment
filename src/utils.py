@@ -7,8 +7,9 @@ import numpy as np
 import pulp
 
 
+# List of variables that are part of the linear relaxation of SUC
 RELAXED_VARIABLES = ["U", "W"]
-#RELAXED_VARIABLES = ["U"]
+
 
 def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
     """ Create a Numpy array of PuLP variables.
@@ -30,10 +31,10 @@ def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
         var_name = name + str(tuple(index)).replace(" ", "")
         variables[index] = pulp.LpVariable(
             var_name, lowBound=low_bound, upBound=up_bound, cat=var_type)
-    return LpVarArray(variables, info={"var_type" : var_type})
+    return LpArray(variables, info={"var_type" : var_type})
     
 
-class LpVarArray(np.ndarray):
+class LpArray(np.ndarray):
 
     def __new__(cls, input_array, info=None):
         obj = np.asarray(input_array).view(cls)
@@ -51,21 +52,21 @@ class LpVarArray(np.ndarray):
         return a == b
 
     def __eq__(self, other):
-        return LpVarArray.__vectorized_eq__(self, other)
+        return LpArray.__vectorized_eq__(self, other)
 
     @np.vectorize
     def __vectorized_le__(a, b):
         return a <= b
 
     def __le__(self, other):
-        return LpVarArray.__vectorized_le__(self, other)
+        return LpArray.__vectorized_le__(self, other)
 
     @np.vectorize
     def __vectorized_ge__(a, b):
         return a >= b
 
     def __ge__(self, other):
-        return LpVarArray.__vectorized_ge__(self, other)
+        return LpArray.__vectorized_ge__(self, other)
 
     def __lt__(self, other):
         class OperationNotSupportedError(Exception): pass
@@ -133,7 +134,7 @@ class SUCLpProblem(pulp.LpProblem):
     def assert_shape(self, *args):
         assert(tuple(args) == self.last_constraint_mat_shape)
     
-    def constraints_violated(self, eps=1e-04):
+    def constraints_violated(self, eps=1e-03):
         groups_n_violated = dict()
         n_violated = 0
         for i, name in enumerate(self.constraints):
@@ -192,7 +193,7 @@ class SUCLpProblem(pulp.LpProblem):
         return constraints
     
     def get_variables(self):
-        return LpVarArray(list(self.variables()), info={"var_type" : "Mixed"})
+        return LpArray(list(self.variables()), info={"var_type" : "Mixed"})
     
     def get_var_values(self):
         return self.get_variables().get_var_values()

@@ -239,6 +239,4 @@ def decompose_problem(instance, mu, nu):
         problem += (w >= 0)
         problem += (z >= 0)
 
-
-
     return PP, P1, P2, ED, variables

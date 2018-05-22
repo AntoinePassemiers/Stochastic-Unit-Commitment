@@ -148,8 +148,9 @@ def create_formulation(instance, variables=None, lower_bound=None, relax=True):
 
     # Define constraints group 3.36
     #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1]
-    problem.set_constraint_group("3.36")
-    problem += (v[Gf, :, 1:] >= u[Gf, :, 1:] - u[Gf, :, :-1])
+    if len(Gf) > 0:
+        problem.set_constraint_group("3.36")
+        problem += (v[Gf, :, 1:] >= u[Gf, :, 1:] - u[Gf, :, :-1])
 
     # Define constraints group 3.37
     #    PI[s] * u[g, s, t] == PI[s] * w[g, t]

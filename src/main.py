@@ -5,9 +5,9 @@
 from decomposition import decompose_problem
 from instance import SUPInstance
 from lp_relaxation import init_variables, create_formulation
-from rounding import dive_and_fix
+from dive_and_fix import dive_and_fix
 from subgradient import solve_with_subgradient
-from utils import LpVarArray, SUCLpProblem, RELAXED_VARIABLES
+from utils import LpArray, SUCLpProblem, RELAXED_VARIABLES
 
 import os
 import sys
@@ -53,12 +53,14 @@ def solve_problem(instance, relax=True):
             groups=["3.25", "3.26", "3.29", "3.30", "3.31", "3.32", "3.35", "3.36", "3.37"])
         cp = genetic.CyProblem(cy_constraints)
 
-        max_n_iter = 10000
-        part_size = 2
-        n_mutations = 120
-        pop_size = 100
+        print("n int:", )
 
-        rounded, fitness = cp.round_ga(solution, int_mask, max_n_iter=max_n_iter,
+        max_n_iter = 10000
+        part_size = 4
+        n_mutations = int(np.sum(int_mask) / .05)
+        pop_size = 200
+
+        rounded, fitness = cp.round(solution, int_mask, max_n_iter=max_n_iter,
             part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
         problem.set_var_values(rounded)
 
@@ -85,19 +87,20 @@ def solve_problem(instance, relax=True):
                                 var.upBound = var.lowBound = var_value = var.varValue + abs(c.value())
                         if group == "3.25" and stage >= 0:
                             if "U" in var.name:
-                                var.upBound = var.lowBound = var_value = 1
+                                if random.random() < 1 - abs(c.value()):
+                                    var.upBound = var.lowBound = var_value = 1
                         if group == "3.36" and stage >= 2:
                             if "V" in var.name:
-                                if random.random() < 1 - abs(c.value()):
+                                if random.random() < (1 - abs(c.value())) / 2.:
                                     var.upBound = var.lowBound = var_value = 1
                         if group == "3.35" and stage >= 2:
                             if "Z" in var.name:
-                                if random.random() < 1 - abs(c.value()):
+                                if random.random() < (1 - abs(c.value())) / 2.:
                                     var.upBound = var.lowBound = var_value = 1
             problem.solve()
 
             solution = problem.get_var_values()
-            rounded, fitness = cp.round_ga(solution, int_mask, max_n_iter=max_n_iter,
+            rounded, fitness = cp.round(solution, int_mask, max_n_iter=max_n_iter,
                 part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
             problem.set_var_values(rounded)
             fitness_history.append(fitness)
@@ -105,9 +108,9 @@ def solve_problem(instance, relax=True):
             print("Iteration %i - Fitness: %f" % (n_iter, fitness))
 
             n_violated, _ = problem.constraints_violated()
-            if n_violated == last:
+            if fitness == last:
                 stage += 1
-            last = n_violated
+            last = fitness
         
         if n_violated == -1:
             print("[Warning] Evolve-and-fix heuristic failed")
@@ -119,8 +122,6 @@ def solve_problem(instance, relax=True):
         print("Value of the objective: %f" % obj)
         print("Is integer: ", problem.is_integer_solution())
 
-
-        
         #problem, u, w = create_formulation(instance, relax=False, lower_bound=1.1*obj)
         #problem.solve()
         #dive_and_fix(problem, variables)
@@ -154,7 +155,7 @@ if __name__ == "__main__":
     group.add_argument(
         "--relax",
         action="store_true",
-        help="Decompose problem using lagrangian duality")
+        help="Solve linear relaxation")
     group.add_argument(
         "--decompose",
         action="store_true",

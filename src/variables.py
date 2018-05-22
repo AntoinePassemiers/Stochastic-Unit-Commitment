@@ -6,7 +6,27 @@ from utils import lp_array, RELAXED_VARIABLES
 
 
 def init_variables(Gs, Gf, S, T, N, L, I, relax=True):
+    """ Initialize NumPy arrays of PuLP variables required
+    to solve the SUC problem.
 
+    Args:
+        Gs (np.ndarray):
+            Identifiers of slow generators
+        Gf (np.ndarray):
+            Identifiers of fast generators
+        S (int):
+            Number of scenarios
+        T (int):
+            Number of periods
+        N (int):
+            Number of nodes
+        L (int):
+            Number of lines
+        I (int):
+            Number of import groups
+        relax (:obj:`bool`, optional):
+            Either to relax the integrality constraints on U and W
+    """
     G = len(Gs) + len(Gf) # Number of generators
 
     # u[g, s, t] = Commitment of generator g in scenario s, period t

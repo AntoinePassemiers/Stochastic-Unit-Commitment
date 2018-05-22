@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-# rounding.py: Rounding algorithms for SUC
+# dive_and_fix.py: Rounding algorithm for SUC
 # authors: Antoine Passemiers, Cedric Simar
 
-from utils import LpVarArray
+from utils import LpArray
 
 import numpy as np
 

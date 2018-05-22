@@ -77,10 +77,14 @@ class SUPInstance:
 
         # GAMMA[j, l] = Polarity of line l in import group j
         self.GAMMA = np.empty((self.n_import_groups, self.n_lines), dtype=np.float)
+    
+    def get_attributes(self, keys):
+        return tuple([getattr(self, key) for key in keys])
 
     def get_sizes(self):
-        return (self.n_generators, self.n_scenarios, self.n_periods,
-            self.n_lines, self.n_nodes, self.n_import_groups)
+        return self.get_attributes([
+            "n_generators", "n_scenarios", "n_periods",
+            "n_lines", "n_nodes", "n_import_groups"])
 
     def get_indices(self):
         LI_indices = np.full((self.n_nodes, self.n_nodes), SUPInstance.NO_LINE, dtype=np.int)
@@ -99,9 +103,9 @@ class SUPInstance:
             LI_indices, LO_indices, L_node_indices)
 
     def get_constants(self):
-        return (self.PI, self.K, self.S, self.C, self.D, self.P_plus, self.P_minus,
-            self.R_plus, self.R_minus, self.UT, self.DT, self.T_req, self.F_req, 
-            self.B, self.TC, self.FR, self.IC, self.GAMMA)
+        return self.get_attributes([
+            "PI", "K", "S", "C", "D", "P_plus", "P_minus", "R_plus", "R_minus",
+            "UT", "DT", "T_req", "F_req", "B", "TC", "FR", "IC", "GAMMA"])
 
     @staticmethod
     def parse_n_data_lines(f, n_lines, is_index=False):
@@ -109,7 +113,10 @@ class SUPInstance:
         data = list()
         while i < n_lines:
             line = f.readline().replace("\n", "").rstrip()
-            if line.strip()[0] != '#':
+            if len(line.strip()) == 0:
+                data.append([])
+                i += 1
+            elif line.strip()[0] != '#':
                 words = line.split(' ')
                 elements = list()
                 for word in words:
@@ -137,10 +144,10 @@ class SUPInstance:
     def from_file(filepath):
         with open(filepath) as f:
             n_generators = int(SUPInstance.parse_n_data_lines(f, 1)[0])
-            Gs = np.asarray(SUPInstance.parse_n_data_lines(f, 1)[0],
-                dtype=np.int)-1
-            Gf = np.asarray(SUPInstance.parse_n_data_lines(f, 1)[0],
-                dtype=np.int)-1
+            Gs = np.asarray(SUPInstance.parse_n_data_lines(f, 1, is_index=True)[0],
+                dtype=np.int)
+            Gf = np.asarray(SUPInstance.parse_n_data_lines(f, 1, is_index=True)[0],
+                dtype=np.int)
             assert(n_generators == len(Gs) + len(Gf))
             S = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             T = int(SUPInstance.parse_n_data_lines(f, 1)[0])
