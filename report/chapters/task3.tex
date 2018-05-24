@@ -1,2 +1,81 @@
 \chapterwithsubtitle{Tâche 3}{Résoudre une relaxation Lagrangienne de la Formulation SUC}
 \vspace*{1.2cm}
+
+\section{Décomposition lagrangienne}
+
+Le choix des contraintes relâchées est le même que celui effectué par A. Papavasiliou:
+seules les contraintes de non-anticipitavité ont été dualisées. Les deux raisons
+principales sont que d'une part elles compliquent fortement le problème à résoudre
+et que d'autre part, elles sont les seules contraintes à coupler les différents
+scénarios entre eux. Sans elles, \textit{il est désormais possible de décomposer le problème
+suivant ses différents scénarios}.
+
+Enfin, la relaxation de ses contraintes seules est suffisante pour diminuer significativement
+le temps d'exécution du solveur. En particulier, la somme des temps d'exécution sur les
+différents sous-problèmes créés est fortement inférieure au temps d'exécution sur le problème
+primal, et ceci est d'autant plus valable pour les instances de grande taille.
+
+Le dual lagrangien est donc obtenu en reprenant la fonction objectif du primal et en y
+dualisant les contraintes de non-anticipativité $(3.37)$ et $(3.38)$:
+
+\begin{align*}
+    \mathcal{L} & = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_s u_{gst} + S_g v_{gst} + C_g p_{gst}) + \sum\limits_{g \in G_s} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (\mu_{gst} (u_{gst} - w_{gt}) + \nu_{gst} (v_{gst} - z_{gt})) \\
+    & = \sum\limits_{s \in S} \Big(\sum\limits_{g \in G} \sum\limits_{t \in T} (K_s u_{gst} + S_g v_{gst} + C_g p_{gst}) + \sum\limits_{g \in G_s} \sum\limits_{t \in T} \pi_s (\mu_{gst} u_{gst} + \nu_{gst} v_{gst})\Big) \\
+    & - \sum\limits_{g \in G_s} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (\mu_{gst} w_{gt} + \nu_{gst} z_{gt}) \\
+\end{align*}
+
+Nous observons qu'en réarrangeant les termes de la fonction il est possible de l'exprimer sous la forme d'une somme de plusieurs objectifs, 
+dont un est indépendant du scénario et chacun des autres est assigné à un scénario $s$.
+La décomposition lagrangienne se fait alors comme suit:
+
+\begin{itemize}
+    \item \textbf{Les sous-problèmes P1$_{\text{s}}$} concernent la plannification des générateurs rapides.
+    Le sous-problème $P1_s$ requiert de plannifier les générateurs rapides dans le cadre du scénario $s$.
+    La fonction objectif est donnée par:
+    \begin{equation}
+        \min \ \sum\limits_{g \in G} \sum\limits_{t \in T} (K_s u_{gst} + S_g v_{gst} + C_g p_{gst}) + \sum\limits_{g \in G_s} \sum\limits_{t \in T} \pi_s (\mu_{gst} u_{gst} + \nu_{gst} v_{gst})
+    \end{equation}
+    \item \textbf{Le sous-problème P2} concerne la plannification des générateurs lents et ne prend donc pas
+    en considération les différents scénarios. La valeur de son objectif est quant à elle donnée par:
+    \begin{equation}
+        \min \ - \sum\limits_{g \in G_s} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (\mu_{gst} w_{gt} + \nu_{gst} z_{gt})
+    \end{equation}
+\end{itemize}
+
+La valeur de l'objectif du dual lagrangien est donc exprimé sous la forme d'une somme des objectifs des différents sous-problèmes
+issus de cette décomposition. La tâche consiste à présent à optimiser le dual lagrangien afin de rapprocher la solution duale de la
+zone admissible du primal.
+
+\section{Optimisation du dual lagrangien}
+
+\subsection{Choix de l'algorithme}
+
+Comme expliqué par A. Papavasiliou dans une présentation de 2016 \citep{Asynchronous},
+il est possible que certains sous-problèmes $P1_s$ prennent considérablement plus de temps que le autres pour être résolus, \textit{jusqu'à
+75 fois le temps pris par le sous-problème le plus rapide}. Ceci crée des goulots d'étranglement lors de l'optimisation du dual,
+qui peuvent cependant être résolus par l'utilisation d'un algorithme d'optimisation asynchrone.
+En particulier, l'\textit{algorithme de descente par blocs} a été présenté et permet de mettre à jour un sous-ensemble des multiplicateurs
+lagrangiens en calculant un "fragment" du sous-gradient à la fois. Ce fragment est le sous-ensemble de composantes associées à un seul
+scénario. L'algorithme se distingue donc des algorithmes de descente par coordonnée car plusieurs variables duales sont mis à jour
+à la fois.
+
+Nous avons eu la chance de ne pas observer de tels ralentissements pour les instances fournies et les temps de résolution des différents
+sous-problèmes étaient fort similaires. En conséquence, nous avons fait le choix d'utiliser l'\textit{algorithme du sous-gradient} car il est
+plus simple à implémenter que l'algorithme de descente par blocs.
+Le sous-gradient $d^k$ associés aux multiplicateurs lagrangiens à l'itération $k$ est donné par:
+\begin{align}
+    d_{\mu_{gst}}^k = & \pi_s (w_{gt}^k - u_{gst}^k) \ \  \forall g \in G_s, s \in S, t \in T \\
+    d_{\nu_{gst}}^k = & \pi_s (z_{gt}^k - v_{gst}^k) \ \  \forall g \in G_s, s \in S, t \in T
+\end{align}
+où $d_{\mu}^k$ est le partie du sous-gradient associée aux contraintes $(3.37)$ et $d_{\nu}^k$ est celle associée aux contraintes $(3.38)$.
+Il est important de noter que \textbf{les multiplicateurs lagrangiens sont mis à jour à l'aide de l'équation décrite dans cette même présentation
+et non celle présentée dans la thèse} \citep{Papavasiliou12couplingrenewable} (il s'agit selon nous d'une simple erreur de signe).
+Les multiplicateurs lagrangiens sont donc calculés d'itération en itération de la façon suivante:
+\begin{align}
+    \mu_{gst}^{k+1} = \mu_{gst}^{k} - \alpha_k d_{\mu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T \\
+    \nu_{gst}^{k+1} = \nu_{gst}^{k} - \alpha_k d_{\nu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T
+\end{align}
+L'étape suivante est donc de trouver un pas de déplacement $\alpha_k$ assurant une convergence de l'algorithme.
+
+\subsection{Calcul du pas}
+
