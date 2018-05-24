@@ -116,7 +116,8 @@ def decompose_problem(instance, mu, nu):
         # Define constraints group 3.36
         #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1] for fast generators
         problem.set_constraint_group("3.36")
-        problem += v[Gf, s, 1:] >= u[Gf, s, 1:] - u[Gf, s, :-1]
+        if len(Gf) > 0:
+            problem += v[Gf, s, 1:] >= u[Gf, s, 1:] - u[Gf, s, :-1]
 
         # Define constraints group 3.39
         #    For all generators:
@@ -161,7 +162,9 @@ def decompose_problem(instance, mu, nu):
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
     problem += (z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1])
-    problem += (z[Gs, 0] >= w[Gs, 0])
+    # problem += (z[Gs, 0] >= w[Gs, 0])
+    problem += z[Gs, 0] >= 0
+    problem += w[Gs, 0] >= 0
 
     # Define constraints group 3.40
     #    For slow generators:

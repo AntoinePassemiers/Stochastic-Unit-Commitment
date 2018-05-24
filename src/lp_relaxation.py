@@ -141,7 +141,9 @@ def create_formulation(instance, variables=None, relax=True):
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
     problem += (z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1])
-    problem += (z[Gs, 0] >= w[Gs, 0])
+    # problem += (z[Gs, 0] >= w[Gs, 0])
+    problem += z[Gs, 0] >= 0
+    problem += w[Gs, 0] >= 0
 
     # Define constraints group 3.36
     #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1]

@@ -17,10 +17,7 @@ def solve_subproblem(subproblem):
     Args:
         subproblem (SUCLpProblem): Sub-problem to be solved
     """
-    start = time.time()
-    # print(subproblem.name)
     status = subproblem.solve()
-
     if subproblem.status != pulp.constants.LpStatusOptimal:
         n_violated, groups_n_violated = subproblem.constraints_violated()
         print("Number of violated constraints: %i" % n_violated)
@@ -31,9 +28,6 @@ def solve_subproblem(subproblem):
                     group, groups_n_violated[group][0], groups_n_violated[group][1]))
         print("Problem status: %s" % pulp.LpStatus[subproblem.status])
         assert(subproblem.status == pulp.constants.LpStatusOptimal)
-    exec_time = time.time() - start
-    #print("\tSub-problem %s - Solve time: %f s (status: %i)" % \
-    #    (subproblem.name, exec_time, status))
 
 
 def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
@@ -55,6 +49,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
     lb_history, ub_history, dual_history = list(), list(), list()
     LB, UB = -np.inf, np.inf
     for k in range(100):
+        print("Iteration %i" % (k + 1))
         PP, P1, P2, ED, variables = decompose_problem(instance, mu, nu)
         (u, v, p, theta, w, z, e) = variables
 
@@ -66,12 +61,8 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
         for s in range(instance.n_scenarios):
             L_k += P1[s].objective.value()
 
-        n_violated, groups_n_violated = PP.constraints_violated()
-        print("Number of violated constraints: %i" % n_violated)
-        for group in groups_n_violated.keys():
-            if groups_n_violated[group][0] > 0:
-                print("Number of violated constraints of group %s: %i / %i" % (
-                    group, groups_n_violated[group][0], groups_n_violated[group][1]))
+        n_violated, _ = PP.constraints_violated()
+        print("N_violated: %i" % n_violated)
 
         if L_k == LB:
             _lambda /= 2
@@ -83,18 +74,6 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
         w_k = w[Gs, :].get_var_values()[..., np.newaxis]
         z_k = z[Gs, :].get_var_values()[..., np.newaxis]
 
-        """
-        for g in Gs:
-            for t in range(instance.n_periods):
-                w[g, t].lowBound = w[g, t].upBound = w[g, t].varValue
-                z[g, t].lowBound = z[g, t].upBound = z[g, t].varValue
-
-        for s in range(instance.n_scenarios):
-            solve_subproblem(ED[s])
-
-        L_hat = PP.objective.value()
-        """
-
         if L_hat < UB:
             UB = L_hat
 
@@ -103,10 +82,14 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
 
         print("UB: %f, LB: %f" % (UB, LB))
         print("L_hat: %f, L_k: %f" % (L_hat, L_k))
-        alpha_k = _lambda * (L_hat - L_k) / np.sum((PI**2) * (u_k - w_k)**2 + \
-            (PI**2) * (v_k - z_k)**2)
+        squared_cons = np.sum((PI**2) * (u_k - w_k)**2 + (PI**2) * (v_k - z_k)**2)
+        if squared_cons == 0 or L_hat == L_k:
+            alpha_k = 0
+        else:
+            alpha_k = _lambda * (L_hat - L_k) / squared_cons
+            alpha_k = 2000 * (0.96 ** k)
         
-        alpha_k = 2000 * (0.96 ** k)
+        print(alpha_k)
         
         lb_history.append(LB)
         ub_history.append(UB)
@@ -117,6 +100,10 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
 
         mu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (w_k - u_k), 2, 1)
         nu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (z_k - v_k), 2, 1)
+
+        if n_violated == 0 or alpha_k == 0:
+            print("Feasible primal solution found")
+            break
 
     horiz_line_data = np.array([96941.358] * len(lb_history))
     xs = np.arange(1, len(lb_history)+1)
@@ -129,3 +116,4 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
     plt.title("Convergence de l'algorithme du sous-gradient")
     plt.legend()
     plt.savefig("subgradient.png")
+    return PP

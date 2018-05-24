@@ -148,7 +148,11 @@ class SUPInstance:
                 dtype=np.int)
             Gf = np.asarray(SUPInstance.parse_n_data_lines(f, 1, is_index=True)[0],
                 dtype=np.int)
-            assert(n_generators == len(Gs) + len(Gf))
+
+            try:
+                assert(n_generators == len(Gs) + len(Gf))
+            except TypeError:
+                pass
             S = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             T = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             L = int(SUPInstance.parse_n_data_lines(f, 1)[0])
