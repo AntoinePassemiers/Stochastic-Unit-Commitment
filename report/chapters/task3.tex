@@ -64,18 +64,58 @@ sous-problèmes étaient fort similaires. En conséquence, nous avons fait le ch
 plus simple à implémenter que l'algorithme de descente par blocs.
 Le sous-gradient $d^k$ associés aux multiplicateurs lagrangiens à l'itération $k$ est donné par:
 \begin{align}
-    d_{\mu_{gst}}^k = & \pi_s (w_{gt}^k - u_{gst}^k) \ \  \forall g \in G_s, s \in S, t \in T \\
-    d_{\nu_{gst}}^k = & \pi_s (z_{gt}^k - v_{gst}^k) \ \  \forall g \in G_s, s \in S, t \in T
+    d_{\mu_{gst}}^k = & \ \pi_s (w_{gt}^k - u_{gst}^k) \ \  \forall g \in G_s, s \in S, t \in T \\
+    d_{\nu_{gst}}^k = & \ \pi_s (z_{gt}^k - v_{gst}^k) \ \  \forall g \in G_s, s \in S, t \in T
 \end{align}
 où $d_{\mu}^k$ est le partie du sous-gradient associée aux contraintes $(3.37)$ et $d_{\nu}^k$ est celle associée aux contraintes $(3.38)$.
 Il est important de noter que \textbf{les multiplicateurs lagrangiens sont mis à jour à l'aide de l'équation décrite dans cette même présentation
 et non celle présentée dans la thèse} \citep{Papavasiliou12couplingrenewable} (il s'agit selon nous d'une simple erreur de signe).
 Les multiplicateurs lagrangiens sont donc calculés d'itération en itération de la façon suivante:
 \begin{align}
-    \mu_{gst}^{k+1} = \mu_{gst}^{k} - \alpha_k d_{\mu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T \\
-    \nu_{gst}^{k+1} = \nu_{gst}^{k} - \alpha_k d_{\nu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T
+    \mu_{gst}^{0} & = 0 \ \  \forall g \in G_s, s \in S, t \in T \\
+    \nu_{gst}^{0} & = 0 \ \  \forall g \in G_s, s \in S, t \in T \\
+    \mu_{gst}^{k+1} & = \ \mu_{gst}^{k} - \alpha_k d_{\mu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T \\
+    \nu_{gst}^{k+1} & = \ \nu_{gst}^{k} - \alpha_k d_{\nu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T
 \end{align}
 L'étape suivante est donc de trouver un pas de déplacement $\alpha_k$ assurant une convergence de l'algorithme.
 
 \subsection{Calcul du pas}
 
+Un pas de déplacement fortement utilisé en pratique, décrit par Fisher et Held notamment, repris par Papavasiliou, est décrit ainsi:
+\begin{equation}
+    \alpha^k = \frac{\lambda (\hat{L} - L^k)}{\sum\limits_{g \in G_s} \sum\limits_{s \in S} \sum\limits_{t \in T} \big(\pi_s^2 \ (u_{gst}^k - w_{gt}^k)^2 + \pi_s^2 \ (v_{gst}^k - z_{gt}^k)^2\big)}
+\end{equation}
+où $\lambda$ est un paramètre constant, $\hat{L}$ est une borne supérieure sur la solution optimale du primal et $L^k$ est la somme des objectifs des sous-problèmes
+à l'itération $k$. Il reste donc le problème de trouver une borne supérieure raisonnable sur la valeur de la solution optimale,
+et que l'on puisse calculer rapidement. Il reste encore à calculer une borne supérieure, qui peut être trouvée notamment avec une solution primale faisable.
+Le problème est que trouver une solution faisable constitue déjà une difficulté. Puisque l'obtention d'une solution primale faisable
+concerne la tâche 4 du projet, nous avons décidé de \textbf{nous affranchir de ce problème dans le cadre de la tâche 3}.
+Nous n'avons donc pas pris en considération l'idée de Papavasiliou consistant en l'obtention d'une solution faisable par résolution
+du problème de répartition économique (\textit{economic dispatch}).
+Deux autres raisons à ce choix est qu'une telle solution ne peut être obtenue que vers les dernières itérations du sous-gradient
+(nous laissant donc sans borne supérieure durant la majorité du temps d'exécution), et que la résolution des différents sous-problèmes
+de répartition économique (un par scénario) ralentit le sous-gradient, malgré le fait que les différents sous-problèmes peuvent être résolus en parallèle.
+Nous avons donc opté pour deux alternatives:
+
+\subsubsection{Calcul du pas sur base d'une borne supérieure}
+
+Une façon naïve de calculer une borne supérieure rapidement est de fixer les variables
+$u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$ à leurs valeurs maximales respectives.
+Il est assez clair que la solution correspondante devient infaisable et que seules les contraintes 
+$(3.25), (3.33), (3.34), (3.39), (3.40)$ sont garanties d'être satisfaites. Par exemple, certaines contraintes $(3.36)$ cessent d'être satisfaites
+car il n'est pas possible d'allumer un générateur deux fois d'affilée. Cependant, la valeur de l'objectif constitue une borne supérieure
+car toute solution faisable nécessite d'abaisser la valeur d'une des variables $u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$
+afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut valoir plusieurs fois la valeur de la solution optimale}.
+Cette borne $WUB$ est calculée ainsi:
+\begin{equation}
+    WUB = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g + S_g + C_g P_{gs}^{+})
+\end{equation}
+
+TODO
+
+\subsubsection{Calcul du pas suivant une suite géométrique}
+
+\begin{equation}
+    \alpha_k = \alpha_0 \rho^k
+\end{equation}
+$\alpha_0$ et $\rho$ doivent être choisis suffisamment grands afin d'assurer la convergence de l'algorithme.
