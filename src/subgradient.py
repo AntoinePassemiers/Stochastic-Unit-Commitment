@@ -36,21 +36,29 @@ def solve_subproblem(subproblem):
     #    (subproblem.name, exec_time, status))
 
 
-def solve_with_subgradient(instance, _lambda=2., _epsilon=1.0):
-    PI, Gs, K, S, C = instance.get_attributes(["PI", "Gs", "K", "S", "C"])
+def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
+    PI, Gs, K, S, C, P_plus = instance.get_attributes(["PI", "Gs", "K", "S", "C", "P_plus"])
+    n_periods = instance.n_periods
+    n_scenarios = instance.n_scenarios
+    n_generators = instance.n_generators
+
+    L_hat = np.sum(PI * np.swapaxes(
+        K * np.ones((n_periods, n_scenarios, n_generators)) + \
+        S * np.ones((n_periods, n_scenarios, n_generators)) + \
+        C * P_plus.T, 1, 2))
+    print(L_hat)
 
     # Lagrangian multipliers
     mu = np.zeros((instance.n_generators, instance.n_scenarios, instance.n_periods))
     nu = np.zeros((instance.n_generators, instance.n_scenarios, instance.n_periods))
 
-    aa, ab = list(), list()
+    lb_history, ub_history, dual_history = list(), list(), list()
     LB, UB = -np.inf, np.inf
     for k in range(100):
         PP, P1, P2, ED, variables = decompose_problem(instance, mu, nu)
         (u, v, p, theta, w, z, e) = variables
 
         for s in range(instance.n_scenarios):
-            # TODO: paralléliser
             solve_subproblem(P1[s])
         solve_subproblem(P2)
 
@@ -75,6 +83,7 @@ def solve_with_subgradient(instance, _lambda=2., _epsilon=1.0):
         w_k = w[Gs, :].get_var_values()[..., np.newaxis]
         z_k = z[Gs, :].get_var_values()[..., np.newaxis]
 
+        """
         for g in Gs:
             for t in range(instance.n_periods):
                 w[g, t].lowBound = w[g, t].upBound = w[g, t].varValue
@@ -84,6 +93,8 @@ def solve_with_subgradient(instance, _lambda=2., _epsilon=1.0):
             solve_subproblem(ED[s])
 
         L_hat = PP.objective.value()
+        """
+
         if L_hat < UB:
             UB = L_hat
 
@@ -91,11 +102,15 @@ def solve_with_subgradient(instance, _lambda=2., _epsilon=1.0):
             break
 
         print("UB: %f, LB: %f" % (UB, LB))
+        print("L_hat: %f, L_k: %f" % (L_hat, L_k))
         alpha_k = _lambda * (L_hat - L_k) / np.sum((PI**2) * (u_k - w_k)**2 + \
             (PI**2) * (v_k - z_k)**2)
         
-        aa.append(LB)
-        ab.append(UB)
+        alpha_k = 2000 * (0.96 ** k)
+        
+        lb_history.append(LB)
+        ub_history.append(UB)
+        dual_history.append(L_k)
         
         # print(np.swapaxes(PI * (z_k - v_k), 2, 1))
 
@@ -103,6 +118,14 @@ def solve_with_subgradient(instance, _lambda=2., _epsilon=1.0):
         mu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (w_k - u_k), 2, 1)
         nu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (z_k - v_k), 2, 1)
 
-    plt.step(np.arange(1, len(aa)+1), aa)
-    plt.step(np.arange(1, len(ab)+1), ab)
-    plt.show()
+    horiz_line_data = np.array([96941.358] * len(lb_history))
+    xs = np.arange(1, len(lb_history)+1)
+    plt.plot(xs, horiz_line_data, 'r--', label="Solution primale optimale") 
+    plt.step(xs, lb_history, label="Borne inférieure sur le primal")
+    # plt.step(xs, ub_history)
+    plt.plot(xs, dual_history, label="Valeur du dual")
+    plt.xlabel("Itération")
+    plt.ylabel("Valeur de l'objectif")
+    plt.title("Convergence de l'algorithme du sous-gradient")
+    plt.legend()
+    plt.savefig("subgradient.png")

@@ -10,7 +10,7 @@ import numpy as np
 import pulp
 
 
-def create_formulation(instance, variables=None, lower_bound=None, relax=True):
+def create_formulation(instance, variables=None, relax=True):
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
     n_generators, n_periods, n_lines, n_nodes = G, T, L, N
 
@@ -35,10 +35,6 @@ def create_formulation(instance, variables=None, lower_bound=None, relax=True):
             S * np.swapaxes(v, 0, 2) + \
             C * np.swapaxes(p, 0, 2), 1, 2))
     problem += obj
-
-    if lower_bound:
-        problem.set_constraint_group("obj")
-        problem += (obj >= lower_bound)
 
 
     # Define constraints group 3.21
@@ -144,7 +140,8 @@ def create_formulation(instance, variables=None, lower_bound=None, relax=True):
     # Define constraints group 3.35
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
-    problem += z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1]
+    problem += (z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1])
+    problem += (z[Gs, 0] >= w[Gs, 0])
 
     # Define constraints group 3.36
     #    v[g, s, t] >= u[g, s, t] - u[g, s, t-1]

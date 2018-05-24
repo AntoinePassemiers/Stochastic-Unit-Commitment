@@ -160,8 +160,8 @@ def decompose_problem(instance, mu, nu):
     # Define constraints group 3.35
     #    z[g, t] >= w[g, t] - w[g, t-1] for slow generators
     problem.set_constraint_group("3.35")
-    problem += z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1]
-    problem += z[Gs, 0] >= w[Gs, 0] # TODO?
+    problem += (z[Gs, 1:] >= w[Gs, 1:] - w[Gs, :-1])
+    problem += (z[Gs, 0] >= w[Gs, 0])
 
     # Define constraints group 3.40
     #    For slow generators:
@@ -236,7 +236,7 @@ def decompose_problem(instance, mu, nu):
         #    z[g, t] >= 0
         #    w[g, t] in {0, 1}
         #    Those constraints have been added during variables initialization
-        problem += (w >= 0)
-        problem += (z >= 0)
+        problem += (w[Gs, :] >= 0)
+        problem += (z[Gs, :] >= 0)
 
     return PP, P1, P2, ED, variables
