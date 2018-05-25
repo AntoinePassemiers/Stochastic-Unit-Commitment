@@ -15,7 +15,8 @@ import argparse
 import pulp
 
 
-def solve_problem(instance, relax=True, _round=False, decompose=False):
+def solve_problem(instance, relax=True, _round=False, decompose=False, 
+        _epsilon=0.01, _alpha0=5000.0, _rho=0.92, _nar=10):
     print("Solving problem...")
     start = time.time()
     if not decompose:
@@ -25,7 +26,8 @@ def solve_problem(instance, relax=True, _round=False, decompose=False):
         problem.solve()
         l_k = None
     else:
-        problem, l_k = solve_with_subgradient(instance)
+        problem, l_k = solve_with_subgradient(instance,
+            _epsilon=_epsilon, _alpha0=_alpha0, _rho=_rho, _nar=_nar)
         evolve_and_fix(problem)
     exec_time = time.time() - start
     obj = problem.objective.value()
@@ -36,10 +38,7 @@ def solve_problem(instance, relax=True, _round=False, decompose=False):
 
     if _round:
         heuristic_start = time.time()
-        if _round == "evolve-and-fix":
-            evolve_and_fix(problem)
-        elif _round == "dive-and-fix":
-            dive_and_fix(problem, variables)
+        evolve_and_fix(problem)
         print("Rounding time: %f s" % (time.time() - heuristic_start))
         obj = problem.objective.value()
         print("Value of the objective: %f" % obj)
@@ -79,8 +78,32 @@ def main():
         help="Decompose problem using lagrangian duality")
     parser.add_argument(
         "--round",
-        choices=['evolve-and-fix', 'dive-and-fix'],
+        action="store_true",
         help="Round solution using heuristic algorithms")
+    parser.add_argument(
+        "--alpha0",
+        action="store_true",
+        default=2000.0,
+        type=float,
+        help="Initial subgradient steplength")
+    parser.add_argument(
+        "--nar",
+        action="store_true",
+        default=50,
+        type=int,
+        help="Number of iterations without heuristic")
+    parser.add_argument(
+        "--rho",
+        action="store_true",
+        default=0.96,
+        type=float,
+        help="Round solution using heuristic algorithms")
+    parser.add_argument(
+        "--epsilon",
+        action="store_true",
+        default=0.01,
+        type=float,
+        help="Convergence threshold")
     args = parser.parse_args()
 
     # Parse instance file
@@ -104,7 +127,7 @@ if __name__ == "__main__":
                 filepath = os.path.join(folder, filename)
                 instance = SUPInstance.from_file(filepath)
 
-                obj, total_time, n_violated, l_k = solve_problem(instance, relax=True, _round="evolve-and-fix", decompose=True)
+                obj, total_time, n_violated = solve_problem(instance, relax=True, _round=True, decompose=True)
 
                 with open("results.txt", "a") as f:
                     if l_k is None:
