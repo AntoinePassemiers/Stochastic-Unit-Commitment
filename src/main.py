@@ -93,7 +93,7 @@ if __name__ == "__main__":
     
     folder = "../instances"
     for filename in os.listdir(folder):
-        if "inst-10-6-5-1" in filename:
+        if "inst-10-6-5" in filename:
             print(filename)
             with open("results.txt", "r") as f:
                 filenames = [line.split(",")[0] for line in f.readlines()]
