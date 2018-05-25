@@ -90,17 +90,24 @@ def main():
 
 
 if __name__ == "__main__":
-    """
-    with open("results.txt", "w") as f:
-        folder = "../instances"
-        for filename in os.listdir(folder):
-            if "inst-10" in filename:
-                print(filename)
+    
+    folder = "../instances"
+    for filename in os.listdir(folder):
+        if "inst-10-6-5" in filename:
+            print(filename)
+            with open("results.txt", "r") as f:
+                filenames = [line.split(",")[0] for line in f.readlines()]
+                
+            if(filename not in filenames):
 
                 filepath = os.path.join(folder, filename)
                 instance = SUPInstance.from_file(filepath)
 
-                obj, total_time, n_violated = solve_problem(instance, relax=True, _round="evolve-and-fix")
-                f.write("%s, %f, %f, %d\n" % (filename, obj, total_time, n_violated))
-    """
-    main()
+                obj, total_time, n_violated = solve_problem(instance, relax=True, _round="evolve-and-fix", decompose=True)
+
+                with open("results.txt", "a") as f:
+                    f.write("%s, %f, %f, %d\n" % (filename, obj, total_time, n_violated))
+            else:
+                print("File : " + filename + " already computed")
+    
+    # main()

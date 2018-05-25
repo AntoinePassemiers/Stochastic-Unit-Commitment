@@ -31,7 +31,7 @@ def solve_subproblem(subproblem):
         assert(subproblem.status == pulp.constants.LpStatusOptimal)
 
 
-def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.1, _alpha0=2000.0, _rho=0.96, _nar=4):
+def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0, _rho=0.92, _nar=10):
     PI, Gs, K, S, C, P_plus = instance.get_attributes(["PI", "Gs", "K", "S", "C", "P_plus"])
     n_periods = instance.n_periods
     n_scenarios = instance.n_scenarios
@@ -78,6 +78,13 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.1, _alpha0=2000.0,
         z_k = z[Gs, :].get_var_values()[..., np.newaxis]
         
         if k > _nar:
+
+            betas = np.flip(1. / np.arange(1, len(primal_solutions)+1), 0)
+            betas /= betas.sum()
+            convex_comb = (betas * np.asarray(primal_solutions).T).sum(axis=1)
+
+            PP.set_var_values(convex_comb)
+
             evolve_and_fix(PP)
             n_violated, _ = PP.constraints_violated()
             if n_violated == 0:
