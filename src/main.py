@@ -15,14 +15,17 @@ import argparse
 import pulp
 
 
-def solve_problem(instance, relax=True, _round=False):
-    # Formulate the LP relaxation for the given instance
-    problem, (u, v, p, theta, w, z, e) = create_formulation(instance, relax=relax)
-
-    # Solve LP relaxation
+def solve_problem(instance, relax=True, _round=False, decompose=False):
     print("Solving problem...")
     start = time.time()
-    problem.solve()
+    if not decompose:
+        # Formulate the LP relaxation for the given instance
+        problem, (u, v, p, theta, w, z, e) = create_formulation(instance, relax=relax)
+        # Solve LP relaxation
+        problem.solve()
+    else:
+        problem = solve_with_subgradient(instance)
+        evolve_and_fix(problem)
     exec_time = time.time() - start
     obj = problem.objective.value()
     print("Solve time: %f s" % exec_time)
@@ -82,21 +85,22 @@ def main():
     # Parse instance file
     instance = SUPInstance.from_file(args.instance_file_path)
 
-    if args.decompose:
-        solve_with_subgradient(instance)
-    else:
-        obj, total_time, n_violated = solve_problem(
-            instance, relax=args.relax, _round=args.round)
+    obj, total_time, n_violated = solve_problem(
+        instance, relax=args.relax, _round=args.round, decompose=args.decompose)
 
 
 if __name__ == "__main__":
+    """
     with open("results.txt", "w") as f:
         folder = "../instances"
         for filename in os.listdir(folder):
             if "inst-10" in filename:
+                print(filename)
+
                 filepath = os.path.join(folder, filename)
                 instance = SUPInstance.from_file(filepath)
 
-                print(filename)
-                obj, total_time, n_violated = solve_problem(instance, relax=True)
-                f.write("%f, %f, %d\n" % (obj, total_time, n_violated))
+                obj, total_time, n_violated = solve_problem(instance, relax=True, _round="evolve-and-fix")
+                f.write("%s, %f, %f, %d\n" % (filename, obj, total_time, n_violated))
+    """
+    main()

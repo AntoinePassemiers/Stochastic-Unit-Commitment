@@ -75,6 +75,11 @@ class LpArray(np.ndarray):
     def __gt__(self, other):
         class OperationNotSupportedError(Exception): pass
         raise OperationNotSupportedError("Operation not supported for pulp.LpVariable")
+    
+    def fix_variables(self):
+        for index, variable in np.ndenumerate(self):
+            variable.lowBound = variable.varValue
+            variable.upBound = variable.varValue
 
     def set_var_values(self, values):
         values = np.asarray(values)
@@ -199,8 +204,7 @@ class SUCLpProblem(pulp.LpProblem):
         return self.get_variables().get_var_values()
 
     def set_var_values(self, values):
-        for i, variable in enumerate(list(self.variables())):
-            variable.varValue = values[i]
+        LpArray(self.variables(), info={"var_type" : "Mixed"}).set_var_values(values)
     
 
 if __name__ == "__main__":

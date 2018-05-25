@@ -47,8 +47,9 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
     nu = np.zeros((instance.n_generators, instance.n_scenarios, instance.n_periods))
 
     lb_history, ub_history, dual_history = list(), list(), list()
+    primal_solutions = list()
     LB, UB = -np.inf, np.inf
-    for k in range(100):
+    for k in range(20):
         print("Iteration %i" % (k + 1))
         PP, P1, P2, ED, variables = decompose_problem(instance, mu, nu)
         (u, v, p, theta, w, z, e) = variables
@@ -94,6 +95,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
         lb_history.append(LB)
         ub_history.append(UB)
         dual_history.append(L_k)
+        primal_solutions.append(PP.get_var_values())
         
         # print(np.swapaxes(PI * (z_k - v_k), 2, 1))
 
@@ -116,4 +118,19 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=1.0):
     plt.title("Convergence de l'algorithme du sous-gradient")
     plt.legend()
     plt.savefig("subgradient.png")
+
+
+    n_violated, groups_n_violated = PP.constraints_violated()
+    print("Number of violated constraints: %i" % n_violated)
+    for group in groups_n_violated.keys():
+        if groups_n_violated[group][0] > 0:
+            print("Number of violated constraints of group %s: %i / %i" % (
+                group, groups_n_violated[group][0], groups_n_violated[group][1]))
+
+    primal_solutions = np.asarray(primal_solutions)
+    betas = 1. / (2000 * (0.96 ** np.arange(len(primal_solutions))))
+    betas /= betas.sum()
+    convex_comb = (betas * primal_solutions.T).sum(axis=1)
+
+    PP.set_var_values(convex_comb)
     return PP

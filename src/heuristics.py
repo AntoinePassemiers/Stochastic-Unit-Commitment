@@ -32,10 +32,10 @@ def evolve_and_fix(problem):
         groups=["3.25", "3.26", "3.29", "3.30", "3.31", "3.32", "3.35", "3.36", "3.37"])
     cp = genetic.CyProblem(cy_constraints)
 
-    max_n_iter = 10000
-    part_size = 4
-    n_mutations = int(np.sum(int_mask) / .05)
-    pop_size = 200
+    max_n_iter = 100000
+    part_size = 2
+    n_mutations = 2
+    pop_size = 100
 
     rounded, fitness = cp.round(solution, int_mask, max_n_iter=max_n_iter,
         part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
@@ -44,11 +44,10 @@ def evolve_and_fix(problem):
     n_violated, _ = problem.constraints_violated()
     last = n_violated
     stage = 0
-    max_n_iter = 50
     n_iter = 0
     fitness_history = list()
     only_3_32_constraints = False
-    while n_violated > 0 and not only_3_32_constraints:
+    while n_violated > 0 and not only_3_32_constraints and n_iter < 30:
         n_iter += 1
 
         only_3_32_constraints = True
@@ -74,6 +73,7 @@ def evolve_and_fix(problem):
                         if "Z" in var.name:
                             if random.random() < (1 - abs(c.value())) / 2.:
                                 var.upBound = var.lowBound = var_value = 1
+
         problem.solve()
 
         solution = problem.get_var_values()
@@ -89,8 +89,10 @@ def evolve_and_fix(problem):
             stage += 1
         last = fitness
     
+    """
     if n_violated == -1:
         print("[Warning] Evolve-and-fix heuristic failed")
     else:
         plt.plot(fitness_history)
         plt.show()
+    """

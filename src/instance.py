@@ -108,7 +108,7 @@ class SUPInstance:
             "UT", "DT", "T_req", "F_req", "B", "TC", "FR", "IC", "GAMMA"])
 
     @staticmethod
-    def parse_n_data_lines(f, n_lines, is_index=False):
+    def parse_n_data_lines(f, n_lines, is_index=False, return_lists=False):
         i = 0
         data = list()
         while i < n_lines:
@@ -130,7 +130,10 @@ class SUPInstance:
                         elements.append(int(word)-1 if is_index else int(word))
                     else:
                         elements.append(float(word))
-                data.append(elements if len(elements) > 1 else elements[0])
+                if return_lists:
+                    data.append(elements)
+                else:
+                    data.append(elements if len(elements) > 1 else elements[0])
                 i += 1
         return data
 
@@ -144,15 +147,12 @@ class SUPInstance:
     def from_file(filepath):
         with open(filepath) as f:
             n_generators = int(SUPInstance.parse_n_data_lines(f, 1)[0])
-            Gs = np.asarray(SUPInstance.parse_n_data_lines(f, 1, is_index=True)[0],
-                dtype=np.int)
-            Gf = np.asarray(SUPInstance.parse_n_data_lines(f, 1, is_index=True)[0],
-                dtype=np.int)
+            Gs = np.asarray(SUPInstance.parse_n_data_lines(
+                f, 1, is_index=True, return_lists=True)[0], dtype=np.int)
+            Gf = np.asarray(SUPInstance.parse_n_data_lines(
+                f, 1, is_index=True, return_lists=True)[0], dtype=np.int)
 
-            try:
-                assert(n_generators == len(Gs) + len(Gf))
-            except TypeError:
-                pass
+            assert(n_generators == len(Gs) + len(Gf))
             S = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             T = int(SUPInstance.parse_n_data_lines(f, 1)[0])
             L = int(SUPInstance.parse_n_data_lines(f, 1)[0])
