@@ -49,7 +49,7 @@ version:
 
 \section{Contenu du dossier source}
 
-Voici comment l'implémentation du projet a été divisée:
+Voici comment l'implémentation du projet a été répartie:
 
 \begin{itemize}
   \item \textit{decomposition.py}: Contient l'implémentation de l'unique fonction \textit{decompose\_problem}, permettant
@@ -63,6 +63,7 @@ Voici comment l'implémentation du projet a été divisée:
   \item \textit{experimental.py}: Fichier bac à sable
   \item \textit{genetic.pyx}: Implémentation en "pur C" et parallèle d'un algorithme génétique permettant de minimiser
   le nombre de contraintes non satisfaites pour une instance du problème.
+  \item \textit{heuristics.py}: Implémentation de \textit{evolve-and-fix} (voir tâche 2).
   \item \textit{instance.py}: Structure de données pour les constantes et indices du problème, accompagnée de fonctions
   utilitaires pour parser les différents fichiers d'instance. Notez la différence entre une instance \textit{SUPInstance}
   telle que définie dans ce fichier, et les instances des problèmes PuLP tels que définis à l'aide de la classe

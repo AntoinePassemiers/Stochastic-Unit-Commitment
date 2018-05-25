@@ -6,3 +6,20 @@ TODO Utilisation croissante des énergies renouvelables (solaire et éolienne)
 Heureusement, il y a une flexibilité de la demande.
 
 TODO: ajouter organigramme sur le processus de sélection de scenarios.
+
+\section{Exemples d'appel au programme}
+
+\begin{lstlisting}[language=bash]
+  $ # Résolution du primal
+  $ python main.py <path_to_instance>
+  $ # Résolution de la relaxation linéaire
+  $ python main.py <path_to_instance> --relax
+  $ # Résolution de la relaxation linéaire + arrondi
+  $ python main.py <path_to_instance> --relax --round evolve-and-fix
+  $ # Décomposition lagrangienne et méthode du sous-gradient
+  $ python main.py <path_to_instance> --decompose
+  $ python main.py <path_to_instance> --decompose --nar 6 --lambda 0.01 --epsilon 0.01 --alpha0 2000
+\end{lstlisting}
+
+Les différents paramètres de l'algorithme du sous-gradient sont expliqués dans la partie du partie
+relative à la tâche 4.
