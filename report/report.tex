@@ -1,5 +1,8 @@
 \documentclass[a4paper,11pt]{report}
 
+
+\usepackage{multirow,array}
+\usepackage{booktabs}
 \usepackage{newunicodechar}
 \usepackage{xspace}
 \usepackage[francais]{babel}
@@ -24,6 +27,7 @@
 \usepackage{tabularx}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
+\usepackage{multicol}
 
 %--- custom ---
 \newcommand{\solver}{Cbc }
@@ -31,6 +35,7 @@
 \newcommand{\lang}[1]{\emph{#1}}
 \newcommand{\er}{\textsuperscript{er} }
 \newcommand{\e}{\textsuperscript{e} }
+\newcommand{\ra}[1]{\renewcommand{\arraystretch}{#1}}
 
 \makeatletter
 \def\BState{\State\hskip-\ALG@thistlm}
