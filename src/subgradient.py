@@ -84,7 +84,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
 
             PP.set_var_values(convex_comb)
 
-            evolve_and_fix(PP)
+            evolve_and_fix(PP, verbose=False)
             n_violated, _ = PP.constraints_violated()
             if n_violated == 0:
                 L_hat = PP.objective.value()
@@ -126,6 +126,6 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
         betas = np.flip(1. / np.arange(1, len(primal_solutions)+1), 0)
         betas /= betas.sum()
         convex_comb = (betas * primal_solutions.T).sum(axis=1)
-
         PP.set_var_values(convex_comb)
+        evolve_and_fix(PP, verbose=False)
     return PP, L_k

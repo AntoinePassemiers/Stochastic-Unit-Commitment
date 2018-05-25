@@ -94,8 +94,3 @@ def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_s
     
     for var in variables[int_mask]:
         var.cat = "Integer"
-
-    plt.step(np.arange(1, len(history)+1), history)
-    plt.xlabel("Itération")
-    plt.ylabel("Fonction d'adaptation")
-    plt.savefig("round.png")
