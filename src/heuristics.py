@@ -23,7 +23,8 @@ except ImportError:
 if not EF_AVAILABLE:
     print("[Warning] Evolve-and-fix is not available")
 
-def evolve_and_fix(problem):
+
+def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_size=100, verbose=True):
     assert(EF_AVAILABLE)
     variables = problem.get_variables()
     int_mask = [var.name[0] in RELAXED_VARIABLES for var in variables]
@@ -31,12 +32,6 @@ def evolve_and_fix(problem):
     cy_constraints = problem.get_constraints_as_tuples(
         groups=["3.25", "3.26", "3.29", "3.30", "3.31", "3.32", "3.35", "3.36", "3.37"])
     cp = genetic.CyProblem(cy_constraints)
-
-    max_n_iter = 100000
-    part_size = 2
-    n_mutations = 2
-    pop_size = 100
-
 
     for var in variables[int_mask]:
         var.cat = "Continuous"
@@ -51,7 +46,8 @@ def evolve_and_fix(problem):
     n_iter = 0
     fitness_history = list()
     only_3_32_constraints = False
-    while n_violated > 0 and not only_3_32_constraints and n_iter < 50 and not only_3_32_constraints:
+    print("\tApplying evolve-and-fix heuristic...")
+    while n_violated > 0 and not only_3_32_constraints and n_iter < 50:
         n_iter += 1
 
         only_3_32_constraints = True
@@ -86,7 +82,8 @@ def evolve_and_fix(problem):
         problem.set_var_values(rounded)
         fitness_history.append(fitness)
 
-        print("Iteration %03d - Fitness: %f" % (n_iter, fitness))
+        if verbose:
+            print("\tIteration %03d - Fitness: %f" % (n_iter, fitness))
 
         n_violated, _ = problem.constraints_violated()
         if fitness == last:
@@ -95,11 +92,3 @@ def evolve_and_fix(problem):
     
     for var in variables[int_mask]:
         var.cat = "Integer"
-
-    """
-    if n_violated == -1:
-        print("[Warning] Evolve-and-fix heuristic failed")
-    else:
-        plt.plot(fitness_history)
-        plt.show()
-    """
