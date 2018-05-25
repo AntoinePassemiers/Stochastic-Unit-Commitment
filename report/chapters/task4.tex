@@ -8,6 +8,24 @@ En effet, beaucoup d'auteurs dont \citep{doi:10.1137/S1052623498332336} et \cite
 suggèrent de rapprocher d'avantage la solution courante de la zone admissible du primal en calculant une combinaison
 convexe des différentes solutions obtenues pour le primal.
 
+\section{Séquences ergodiques}
+
+Nous définissons une séquence ergodique comme étant une série $\{\overline{x}^k\}$ où l'élement $\overline{x}^k$
+est calculé ainsi \citep{Aldenvik}:
+\begin{equation}
+    \overline{x}^k = \sum\limits_{s=0}^{t-1} \mu_s^t x^s \ , \ \sum\limits_{s=0}^{t-1} \mu_s^t = 1 \ , \ \mu_s^t \le 0 \ , \ s = 0, \ldots, t-1
+\end{equation}
+où $x^s$ est une solution primale infaisable obtenue à l'itération $s$ de l'algorithme du sous-gradient et $\mu_s^t x^s$ est un coefficient
+de la combinaison convexe $\overline{x}^k$. La nouvelle solution primale obtenue à l'itération $t$ est donc bien une combinaison convexe 
+des solutions déjà obtenues.
+
+Andrea Simonetto et Hadi Jamali-Rad~\citep{Simonetto2016} fournissent une preuve de convergence forte de cette série.
+En revanche, la combinaison des variables binaires de notre problème ont de grandes chances de \textbf{générer des valeurs fractionnaires} pour
+celles-ci. Il a été montré que ce nombre de valeurs fractionnaires est fortement réduit lorsque le nombre d'unités dans le problème
+est significativement supérieur au nombre de périodes de temps. Cependant ceci n'est pas notre cas et il est nécessaire de recourir à une 
+méthode de recherche locale afin de trouver une solution respectant les contraintes d'intégralité.
+La convergence forte n'est pas assurée mais cependant dans le cas d'un problème entier (binaire) mixte (ce qui est le cas), la série converge vers 
+un point de l'enveloppe convexe de la zone admissible.
 
 \subsubsection{Calcul du pas sur base d'une borne supérieure}
 
@@ -17,10 +35,9 @@ Il est assez clair que la solution correspondante devient infaisable et que seul
 $(3.25), (3.33), (3.34), (3.39), (3.40)$ sont garanties d'être satisfaites. Par exemple, certaines contraintes $(3.36)$ cessent d'être satisfaites
 car il n'est pas possible d'allumer un générateur deux fois d'affilée. Cependant, la valeur de l'objectif constitue une borne supérieure
 car toute solution faisable nécessite d'abaisser la valeur d'une des variables $u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$
-afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut valoir plusieurs fois la valeur de la solution optimale}.
+afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut valoir un multiple de l'objectif de la solution optimale}.
 Cette borne $WUB$ est calculée ainsi:
 \begin{equation}
     WUB = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g + S_g + C_g P_{gs}^{+})
 \end{equation}
 
-TODO

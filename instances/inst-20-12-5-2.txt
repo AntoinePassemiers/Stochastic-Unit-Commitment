@@ -1,0 +1,291 @@
+#Number of generators G :
+20
+#Gs :
+1 2 3 5 6 7 8 9 10 11 13 15 16 17 18 19 20 
+#Gf :
+4 12 14 
+#S :
+5
+#T :
+12
+#L :
+21
+#N :
+7
+#Gn (one line contains indices of generators at a node) :
+#node 0
+1 
+#node 1
+2 3 4 5 6 
+#node 2
+7 
+#node 3
+8 9 10 11 
+#node 4
+12 13 14 15 
+#node 5
+16 17 18 
+#node 6
+19 20 
+#LIn (one line contains incoming lines at a node) :
+#node 0
+7-1 6-1 5-1 
+#node 1
+1-2 7-2 6-2 
+#node 2
+2-3 1-3 7-3 
+#node 3
+3-4 2-4 1-4 
+#node 4
+4-5 3-5 2-5 
+#node 5
+5-6 4-6 3-6 
+#node 6
+6-7 5-7 4-7 
+#LOn (one line contains outgoing lines at a node) :
+#node 0
+1-2 1-3 1-4 
+#node 1
+2-3 2-4 2-5 
+#node 2
+3-4 3-5 3-6 
+#node 3
+4-5 4-6 4-7 
+#node 4
+5-6 5-7 5-1 
+#node 5
+6-7 6-1 6-2 
+#node 6
+7-1 7-2 7-3 
+#No import group IG
+#No lines in import groups IGj 
+#Probability of each scenario ps : 
+0.2 0.2 0.2 0.2 0.2 
+#minimum load cost of generators Kg :
+1000 970 700 680 450 370 480 660 665 670 1000 970 700 680 450 370 480 660 665 670 
+#start-up of generators Sg :
+4500 5000 550 560 900 170 260 30 30 30 4500 5000 550 560 900 170 260 30 30 30 
+#marginal cost of generators Cg :
+16.19 17.26 16.6 16.5 19.7 22.26 27.74 25.92 27.27 27.79 16.19 17.26 16.6 16.5 19.7 22.26 27.74 25.92 27.27 27.79 
+#demand Dnst :
+# at node 0
+#    in scenario 0 for all time periods :
+141 190 236 242 257 311 286 326 364 352 344 386 
+#    in scenario 1 for all time periods :
+158 174 236 269 243 289 273 278 323 360 394 416 
+#    in scenario 2 for all time periods :
+158 188 214 236 234 280 276 274 323 380 414 394 
+#    in scenario 3 for all time periods :
+151 166 226 250 274 311 322 291 297 380 410 416 
+#    in scenario 4 for all time periods :
+165 188 226 223 263 295 292 302 308 348 331 381 
+# at node 1
+#    in scenario 0 for all time periods :
+165 170 223 263 254 286 286 326 368 380 377 424 
+#    in scenario 1 for all time periods :
+156 178 202 247 231 308 266 274 360 376 402 394 
+#    in scenario 2 for all time periods :
+139 186 219 220 254 311 276 329 331 364 402 429 
+#    in scenario 3 for all time periods :
+147 172 221 250 271 299 273 336 345 340 356 403 
+#    in scenario 4 for all time periods :
+158 198 228 233 246 283 276 305 360 360 410 377 
+# at node 2
+#    in scenario 0 for all time periods :
+142 174 197 269 243 292 312 285 308 364 336 420 
+#    in scenario 1 for all time periods :
+137 186 202 271 271 302 283 274 331 320 406 381 
+#    in scenario 2 for all time periods :
+165 190 223 271 271 286 296 322 327 364 331 364 
+#    in scenario 3 for all time periods :
+146 198 233 239 271 261 325 278 371 376 360 386 
+#    in scenario 4 for all time periods :
+141 164 197 217 266 270 276 312 338 388 348 364 
+# at node 3
+#    in scenario 0 for all time periods :
+161 168 228 269 274 308 289 319 357 396 348 403 
+#    in scenario 1 for all time periods :
+158 188 216 266 246 283 289 333 305 352 385 416 
+#    in scenario 2 for all time periods :
+166 164 233 263 271 258 319 343 338 320 356 407 
+#    in scenario 3 for all time periods :
+166 182 243 266 266 295 329 298 338 396 402 390 
+#    in scenario 4 for all time periods :
+137 166 243 239 234 289 329 288 345 340 340 394 
+# at node 4
+#    in scenario 0 for all time periods :
+161 168 221 231 283 267 309 295 308 340 394 390 
+#    in scenario 1 for all time periods :
+141 196 197 231 283 314 319 302 364 356 410 347 
+#    in scenario 2 for all time periods :
+151 188 216 228 257 267 302 343 360 348 352 360 
+#    in scenario 3 for all time periods :
+166 180 206 220 277 267 263 291 319 372 344 364 
+#    in scenario 4 for all time periods :
+146 184 233 217 254 255 312 285 345 372 344 429 
+# at node 5
+#    in scenario 0 for all time periods :
+158 188 202 223 269 270 266 343 357 340 340 411 
+#    in scenario 1 for all time periods :
+139 198 238 250 269 295 283 281 360 320 389 403 
+#    in scenario 2 for all time periods :
+168 166 236 236 286 286 286 339 301 324 381 369 
+#    in scenario 3 for all time periods :
+161 184 206 233 231 299 263 315 327 400 373 373 
+#    in scenario 4 for all time periods :
+159 186 238 258 229 308 319 319 327 348 360 403 
+# at node 6
+#    in scenario 0 for all time periods :
+144 174 206 269 263 292 292 326 308 380 336 407 
+#    in scenario 1 for all time periods :
+147 176 214 223 249 273 302 278 357 320 348 390 
+#    in scenario 2 for all time periods :
+144 192 214 242 234 314 306 329 316 320 389 360 
+#    in scenario 3 for all time periods :
+170 188 204 250 234 299 306 285 345 360 352 394 
+#    in scenario 4 for all time periods :
+158 192 243 233 274 289 276 343 357 324 331 394 
+#Maximum capacity P+gs :
+# generator 0 for all scenarios
+373 369 532 482 487 
+# generator 1 for all scenarios
+419 450 464 487 496 
+# generator 2 for all scenarios
+136 136 148 118 152 
+# generator 3 for all scenarios
+105 142 153 143 113 
+# generator 4 for all scenarios
+131 159 191 131 141 
+# generator 5 for all scenarios
+71 69 87 67 78 
+# generator 6 for all scenarios
+91 101 76 86 78 
+# generator 7 for all scenarios
+63 56 48 62 47 
+# generator 8 for all scenarios
+54 54 48 45 65 
+# generator 9 for all scenarios
+56 48 64 58 56 
+# generator 10 for all scenarios
+487 364 441 369 460 
+# generator 11 for all scenarios
+378 519 469 546 450 
+# generator 12 for all scenarios
+126 126 117 117 143 
+# generator 13 for all scenarios
+138 118 127 130 108 
+# generator 14 for all scenarios
+159 164 146 131 144 
+# generator 15 for all scenarios
+75 64 96 83 66 
+# generator 16 for all scenarios
+68 100 76 82 88 
+# generator 17 for all scenarios
+64 46 51 57 45 
+# generator 18 for all scenarios
+58 53 44 54 44 
+# generator 19 for all scenarios
+55 45 64 45 57 
+#Minimum capacity P-gs:
+# generator 0 for all scenarios
+132 122 165 136 130 
+# generator 1 for all scenarios
+129 177 177 141 177 
+# generator 2 for all scenarios
+24 18 20 20 17 
+# generator 3 for all scenarios
+18 23 19 21 23 
+# generator 4 for all scenarios
+28 26 20 21 22 
+# generator 5 for all scenarios
+20 20 23 23 22 
+# generator 6 for all scenarios
+27 27 24 20 24 
+# generator 7 for all scenarios
+10 10 9 11 12 
+# generator 8 for all scenarios
+9 8 9 11 11 
+# generator 9 for all scenarios
+10 8 9 10 9 
+# generator 10 for all scenarios
+128 178 132 122 160 
+# generator 11 for all scenarios
+153 160 126 134 138 
+# generator 12 for all scenarios
+23 23 17 21 23 
+# generator 13 for all scenarios
+24 22 23 18 16 
+# generator 14 for all scenarios
+24 22 28 29 27 
+# generator 15 for all scenarios
+20 17 17 22 17 
+# generator 16 for all scenarios
+22 28 26 23 23 
+# generator 17 for all scenarios
+10 10 10 12 11 
+# generator 18 for all scenarios
+11 11 12 12 10 
+# generator 19 for all scenarios
+9 11 9 10 10 
+#Maximum ramping for all generators R+g :
+250 250 80 80 25 20 25 10 10 10 250 250 80 80 25 20 25 10 10 10 
+#Minimum ramping for all generators R-g :
+150 150 20 20 25 20 25 10 10 10 150 150 20 20 25 20 25 10 10 10 
+#Minimum up time for all generators UTg :
+8 8 5 5 6 3 3 1 1 1 8 8 5 5 6 3 3 1 1 1 
+#Minimum down time for all generators DTg :
+8 8 5 5 6 3 3 1 1 1 8 8 5 5 6 3 3 1 1 1 
+#Number of period : N=T
+#Total reserve for all time periods Tt : 
+60.0 70.0 85.0 95.0 100.0 110.0 115.0 120.0 130.0 140.0 145.0 150.0 
+#Fast reserve for all time periods Ft : 
+4.5 5.25 6.375 7.125 7.5 8.25 8.625 9.0 9.75 10.5 10.875 11.25 
+#Susceptance Bls : 
+#Line 0 in all scenarios
+0.73 0.74 0.79 0.86 0.88 
+#Line 1 in all scenarios
+0.7 0.74 0.72 0.75 0.75 
+#Line 2 in all scenarios
+0.63 0.83 0.64 0.86 0.84 
+#Line 3 in all scenarios
+0.9 0.62 0.85 0.74 0.9 
+#Line 4 in all scenarios
+0.76 0.65 0.81 0.67 0.76 
+#Line 5 in all scenarios
+0.78 0.88 0.79 0.7 0.62 
+#Line 6 in all scenarios
+0.65 0.77 0.89 0.81 0.89 
+#Line 7 in all scenarios
+0.65 0.76 0.71 0.85 0.68 
+#Line 8 in all scenarios
+0.74 0.66 0.62 0.87 0.67 
+#Line 9 in all scenarios
+0.72 0.85 0.63 0.66 0.71 
+#Line 10 in all scenarios
+0.77 0.68 0.88 0.69 0.62 
+#Line 11 in all scenarios
+0.84 0.68 0.61 0.73 0.61 
+#Line 12 in all scenarios
+0.61 0.71 0.79 0.74 0.75 
+#Line 13 in all scenarios
+0.77 0.7 0.73 0.78 0.83 
+#Line 14 in all scenarios
+0.75 0.71 0.8 0.66 0.62 
+#Line 15 in all scenarios
+0.79 0.65 0.69 0.6 0.62 
+#Line 16 in all scenarios
+0.75 0.65 0.85 0.7 0.81 
+#Line 17 in all scenarios
+0.72 0.88 0.7 0.82 0.75 
+#Line 18 in all scenarios
+0.71 0.9 0.63 0.65 0.74 
+#Line 19 in all scenarios
+0.68 0.86 0.76 0.61 0.73 
+#Line 20 in all scenarios
+0.81 0.65 0.7 0.78 0.8 
+#Maximum capacity of all lines TCl : 
+667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 667 
+#Fast reserve limit of all generators FRg : 
+250 250 80 80 25 20 25 10 10 10 250 250 80 80 25 20 25 10 10 10 
+#No import groups ICj 
+#No polarity gamma-jl 
