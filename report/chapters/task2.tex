@@ -1,8 +1,66 @@
 \chapterwithsubtitle{Tâche 2}{Développer une heuristique qui trouve une solution entière admissible}
 \vspace*{1.2cm}
 
+
+
 \section{Algorithme génétique}
 
+L'algorithme génétique proposé a une forme très générale à l'exception qu'il génère 
+des solutions infaisables et cherche à se rapprocher de la zone admissible en diminuant
+les valeurs des contraintes non satisfaites. Décrivons chacune des composantes de l'algorithme.
+
+\subsection{Initialisation de la population}
+
+\textbf{Les contraintes d'intégralité du problème sont généralement non-satisfaites} après résolution
+de la relaxation linéaire. Les variables concernées étant de valeurs fractionnaires,
+nous avons exploité ce problème et généré aléatoirement des membres de la population
+sur base de leurs valeurs. Chaque individu de la population est créé de telle sorte que chaque variable
+$x_i$ de la solution associée à cet individu est arrondie suivant cette simple règle:
+\begin{equation}
+x_i =
+\begin{cases}
+  1 & \text{si } x_i > \zeta \ , \ \zeta \sim U(0, 1) \\
+  0 & sinon
+\end{cases}       
+\end{equation} \\
+
+\subsection{Tournois et sélection des parents}
+
+Deux sous-ensembles (généralement de taille 2) sont créés à partir de la population
+et l'individu avec la meilleure fonction d'adaptation est gardé.
+Les deux sous-ensembles sont disjoints. Un tournoi est effectué pour chacun des deux
+sous-ensembles afin d'obtenir deux parents.
+
+\subsection{Opérateur d'enjambement}
+
+L'opérateur implémente un enjambement uniforme qui, pour chaque variable sur laquelle
+porte une contrainte d'intégralité, choisit aléatoirement de quel parent récupérer
+la valeur de cette variable et la fixer dans la solution du fils.
+Plus formellement, $P$ le nombre de contraintes d'intégralité et $\xi_i$ un entier
+$\in \{0, 1\} \ \forall i \in \{1, \ldots, P\}$, le fils $c$ peut alors être décrit ainsi:
+
+\begin{equation}
+  c_i =
+    \begin{cases}
+      a_i & \text{if } \xi_i = 0 \\
+      b_i & \text{if } \xi_i = 1 \\
+    \end{cases}       
+\end{equation} \\
+
+où $c_i$ est le ième bit de $c$ (la valeur de la ième variable de $c$ sur laquelle porte une
+contrainte d'intégralité),
+$a_i$ et $b_i$ sont les ièmes bits des parents $a$ et $b$, respectivement.
+
+\subsection{Mutation operator}
+
+Crossover operator corresponds to function \textit{crossover} in the source code and randomly
+flips \textit{mutation\_rate} bits in the string representation of the solution.
+In other words, the randomly selected items are added to current solution if they are not already
+present and vice versa.
+\textit{mutation\_rate} is a hyper-parameter and its defaut value has been set to 2 in accordance
+with the original paper. However, solutions produced by crossover and mutation operators are
+not ensured to be feasible. As a consequence, a repair operator had to be implemented in order
+to redirect generated solutions to the feasible region.
 
 \begin{algorithm}[H]
 \caption{Algorithme génétique pour le problème SUC}

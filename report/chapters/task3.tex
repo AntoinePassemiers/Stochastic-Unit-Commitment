@@ -55,7 +55,7 @@ il est possible que certains sous-problèmes $P1_s$ prennent considérablement p
 75 fois le temps pris par le sous-problème le plus rapide}. Ceci crée des goulots d'étranglement lors de l'optimisation du dual,
 qui peuvent cependant être résolus par l'utilisation d'un algorithme d'optimisation asynchrone.
 En particulier, l'\textit{algorithme de descente par blocs} a été présenté et permet de mettre à jour un sous-ensemble des multiplicateurs
-lagrangiens en calculant un "fragment" du sous-gradient à la fois. Ce fragment est le sous-ensemble de composantes associées à un seul
+lagrangiens en calculant une partie du sous-gradient à la fois. Ce fragment est le sous-ensemble de composantes associées à un seul
 scénario. L'algorithme se distingue donc des algorithmes de descente par coordonnée car plusieurs variables duales sont mis à jour
 à la fois.
 
@@ -78,6 +78,7 @@ Les multiplicateurs lagrangiens sont donc calculés d'itération en itération d
     \nu_{gst}^{k+1} & = \ \nu_{gst}^{k} - \alpha_k d_{\nu_{gst}}^k \ \  \forall g \in G_s, s \in S, t \in T
 \end{align}
 L'étape suivante est donc de trouver un pas $\alpha_k$ assurant une convergence de l'algorithme.
+
 
 \subsection{Calcul du pas}
 

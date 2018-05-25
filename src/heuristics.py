@@ -47,7 +47,7 @@ def evolve_and_fix(problem):
     n_iter = 0
     fitness_history = list()
     only_3_32_constraints = False
-    while n_violated > 0 and not only_3_32_constraints and n_iter < 30:
+    while n_violated > 0 and not only_3_32_constraints and n_iter < 50 and not only_3_32_constraints:
         n_iter += 1
 
         only_3_32_constraints = True
