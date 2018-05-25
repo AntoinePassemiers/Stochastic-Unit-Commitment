@@ -4,6 +4,32 @@
 \section{Algorithme génétique}
 
 
+\begin{algorithm}[H]
+\caption{Algorithme génétique pour le problème SUC}
+\begin{algorithmic}[1]
+\Procedure{genetic\_algorithm}{}
+\State $t \leftarrow 0$
+\State Créer une population $Pop$ aléatoirement sur base des variables fractionnaires
+\State Soit $s^{*}$ l'individu tel que $f(s^{*}) \ge f(s) \forall s \in Pop$
+\While {($t < t_{max}$)}
+\State Créer un sous-ensembles aléatoires $P_1, P_2 \subseteq Pop$
+\State $a = tournament(P_1)$
+\State $b = tournament(P_2)$
+\State $c = crossover(a, b)$
+\State $mutate(c)$
+\If {$c$ est identique à un autre individu}
+\State Détruire d'individu $c$
+\Else
+\State Détruire l'individu $w$ le moins adapté et le remplacer par $c$
+\EndIf
+\If {$f(c) > f(s^{*})$}
+\State $s^{*} = c$
+\EndIf
+\State $t \leftarrow t + 1$
+\EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
 
 \section{TODO}
 

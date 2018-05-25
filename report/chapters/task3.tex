@@ -95,27 +95,14 @@ du problème de répartition économique (\textit{economic dispatch}).
 Deux autres raisons à ce choix est qu'une telle solution ne peut être obtenue que vers les dernières itérations du sous-gradient
 (nous laissant donc sans borne supérieure durant la majorité du temps d'exécution), et que la résolution des différents sous-problèmes
 de répartition économique (un par scénario) ralentit le sous-gradient, malgré le fait que les différents sous-problèmes peuvent être résolus en parallèle.
-Nous avons donc opté pour deux alternatives:
-
-\subsubsection{Calcul du pas sur base d'une borne supérieure}
-
-Une façon naïve de calculer une borne supérieure rapidement est de fixer les variables
-$u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$ à leurs valeurs maximales respectives.
-Il est assez clair que la solution correspondante devient infaisable et que seules les contraintes 
-$(3.25), (3.33), (3.34), (3.39), (3.40)$ sont garanties d'être satisfaites. Par exemple, certaines contraintes $(3.36)$ cessent d'être satisfaites
-car il n'est pas possible d'allumer un générateur deux fois d'affilée. Cependant, la valeur de l'objectif constitue une borne supérieure
-car toute solution faisable nécessite d'abaisser la valeur d'une des variables $u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$
-afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut valoir plusieurs fois la valeur de la solution optimale}.
-Cette borne $WUB$ est calculée ainsi:
+Pour cette tâche nous avons opté pour une alternative plus simple inspirée de \citep{Zhuang1988}.
+La méthode a été montrée comme efficace sur le problème de \textit{unit commitment} et calcule le pas de déplacement uniquement
+sur base de deux paramètres de contrôle et du numéro de l'itération courante. Dans l'article en question le pas est mis à jour de la façon suivante:
 \begin{equation}
-    WUB = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g + S_g + C_g P_{gs}^{+})
+    \alpha^k = \frac{1}{\alpha + \beta k} \ , \  \alpha, \beta > 0
 \end{equation}
-
-TODO
-
-\subsubsection{Calcul du pas suivant une suite géométrique}
-
+Dans l'implémentation de notre sous-gradient, nous avons plutôt utilisé la formule suivante:
 \begin{equation}
     \alpha_k = \alpha_0 \rho^k
 \end{equation}
-$\alpha_0$ et $\rho$ doivent être choisis suffisamment grands afin d'assurer la convergence de l'algorithme.
+où $\alpha_0$ et $\rho$ doivent être choisis suffisamment grands afin d'assurer la convergence de l'algorithme.

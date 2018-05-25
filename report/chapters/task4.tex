@@ -1,2 +1,26 @@
 \chapterwithsubtitle{Tâche 4}{Développer une heuristique basée sur la solution obtenue par la relaxation de la tâche précédente}
 \vspace*{1.2cm}
+
+Contrairement à ce qui a été suggéré dans l'énoncé et malgré l'utilité que peuvent avoir les multiplicateurs lagrangiens
+dans la recherche d'une solution primale admissible, nous avons choisi d'exploiter exclusivement l'information
+contenue dans l'historique des solutions primales non-admissibles obtenues avec la méthode du sous-gradient.
+En effet, beaucoup d'auteurs dont \citep{doi:10.1137/S1052623498332336} et \citep{Zhuang1988}
+suggèrent de rapprocher d'avantage la solution courante de la zone admissible du primal en calculant une combinaison
+convexe des différentes solutions obtenues pour le primal.
+
+
+\subsubsection{Calcul du pas sur base d'une borne supérieure}
+
+Une façon naïve de calculer une borne supérieure rapidement est de fixer les variables
+$u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$ à leurs valeurs maximales respectives.
+Il est assez clair que la solution correspondante devient infaisable et que seules les contraintes 
+$(3.25), (3.33), (3.34), (3.39), (3.40)$ sont garanties d'être satisfaites. Par exemple, certaines contraintes $(3.36)$ cessent d'être satisfaites
+car il n'est pas possible d'allumer un générateur deux fois d'affilée. Cependant, la valeur de l'objectif constitue une borne supérieure
+car toute solution faisable nécessite d'abaisser la valeur d'une des variables $u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$
+afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut valoir plusieurs fois la valeur de la solution optimale}.
+Cette borne $WUB$ est calculée ainsi:
+\begin{equation}
+    WUB = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g + S_g + C_g P_{gs}^{+})
+\end{equation}
+
+TODO

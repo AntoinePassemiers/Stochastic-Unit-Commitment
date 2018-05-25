@@ -22,14 +22,19 @@
 \usepackage{lipsum}
 \usepackage{natbib}
 \usepackage{tabularx}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
 
 %--- custom ---
 \newcommand{\solver}{Cbc }
 
-
 \newcommand{\lang}[1]{\emph{#1}}
 \newcommand{\er}{\textsuperscript{er} }
 \newcommand{\e}{\textsuperscript{e} }
+
+\makeatletter
+\def\BState{\State\hskip-\ALG@thistlm}
+\makeatother
 
 \newcommand{\bin}{\in\{0,1\}}
 \newcommand{\real}{\in \mathbb{R}^+}
@@ -142,6 +147,7 @@ TODO
 \citep{Papavasiliou12couplingrenewable}
 \citep{Papavasiliou2013}
 \citep{mitchell2011pulp}
+\citep{behnel2010cython}
 
 \newpage
 
