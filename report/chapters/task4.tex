@@ -26,8 +26,18 @@ est significativement supérieur au nombre de périodes de temps. Cependant ceci
 méthode de recherche locale afin de trouver une solution respectant les contraintes d'intégralité.
 La convergence forte n'est pas assurée mais cependant dans le cas d'un problème entier (binaire) mixte (ce qui est le cas), la série converge vers 
 un point de l'enveloppe convexe de la zone admissible.
-Comme méthode de recherche locale, nous avons simplement utilisé l'heuristique implémentée dans le cadre de la tâche car nous l'avons
-justement spécialement conçue pour les solutions dont les variables censées être binaires ont des valeurs fractionnaires.
+Comme méthode de recherche locale, nous avons simplement utilisé \textbf{l'heuristique implémentée dans le cadre de la tâche 2} car nous l'avons
+justement spécialement conçue pour les solutions contenant des valeurs fractionnaires.
+
+\section{Bornes supérieures}
+
+L'algorithme tel qu'implémenté dans la tâche 3 a été modifié afin de calculer une borne supérieure sur base de solution primales admissibles.
+Cependant, au début de la méthode du sous-gradient, les solutions duales trouvées génèrent des solutions primales
+correspondantes fort éloignée de la zone admissible: il y a donc de plus grandes choses de voir l'heuristique échouer.
+Nous introduisons un paramètre \textit{$n_{ar}$} correspondant au nombre d'itérations du sous-gradient avant de commencer à utiliser
+l'heuristique pour reconstruire une solution du primal. Lorsqu'une première solution admissible est trouvée, la borne supérieure est abaissée
+à la valeur de l'objectif trouvé et le pas du sous-gradient est calculé sur base des bornes supérieures et inférieures.
+Tant qu'aucune solution admissible n'est disponible, le pas est calculé via la suite géométrique décrite à la fin de la tâche 3.
 
 \subsubsection{Calcul du pas sur base d'une borne supérieure}
 
@@ -43,3 +53,42 @@ Cette borne $WUB$ est calculée ainsi:
     WUB = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g + S_g + C_g P_{gs}^{+})
 \end{equation}
 
+Cette borne supérieure a été utilisée lors de l'implémentation du sous-gradient de la tâche 3 et a été abandonnée au profit de la suite géométrique et
+des objectifs des solutions primales trouvées heuristiquement.
+
+\section{Vue générale de la méthode}
+
+\begin{algorithm}[H]
+\caption{Méthode du sous-gradient pour le problème SUC}
+\begin{algorithmic}[1]
+\Procedure{solve\_with\_subgradient}{}
+\State $k \leftarrow 0$
+\State $UB = \leftarrow WUB, \ LB = -\infty$ 
+\State $\mu_{gst} = 0 \ , \ nu_{gst} = 0 \ \ \forall g \in G, s \in S, t \in T$
+\While {$\frac{(UB - LB)}{UB} \le \epsilon$}
+\State Résoudre les sous-problèmes $P2$ et $P1_s \ \forall s \in S$
+\State $L_k \leftarrow $ \ somme des objectifs des différents sous-problèmes
+\If {$L_k = LB$}
+\State $\lambda \leftarrow \lambda / 2$
+\EndIf
+\If {$L_k > LB$}
+\State $LB = L_k$
+\EndIf
+\If {$k > n_{ar}$}
+\State Somme ergodique $\overline{x}^k$ de toutes les solutions primales infaisables obtenues
+\State Obtenir une solution primale admissible de manière heuristique depuis $\overline{x}^k$
+\EndIf
+\If {$\hat{L} < UB$}
+\State $UB = \hat{L}$
+\EndIf
+\If {$k > n_{ar}$ et une solution admissible a été trouvée}
+\State $\alpha_k = \frac{\lambda (\hat{L} - L^k)}{\sum\limits_{g \in G_s} \sum\limits_{s \in S} \sum\limits_{t \in T} \big(\pi_s^2 \ (u_{gst}^k - w_{gt}^k)^2 + \pi_s^2 \ (v_{gst}^k - z_{gt}^k)^2\big)}$
+\Else
+\State $\alpha_k = \alpha_0 \ \rho^k$
+\EndIf
+\State Mise à jour des multiplicateurs $\mu_{gst}, \nu{gst} \ \ \forall g \in G, s \in S, t \in T$
+\State $k \leftarrow k + 1$
+\EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}

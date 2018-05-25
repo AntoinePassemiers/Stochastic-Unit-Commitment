@@ -59,3 +59,11 @@ Cette redondance n'est justifiée que par l'utilisation de la relaxation lagrang
 elle permet de borner les sous-problèmes produits par la décomposition lagrangienne. En l'absence d'une telle relaxation il convient alors de retirer 
 de la modélisation les variables $u_{gst}$ et $v_{gst}$ associées aux générateurs lents. Puisque nous avons gardé la même approche qu'Anthony Papavasiliou
 pour la décomposition lagrangienne, toutes les variables ont été gardées.
+
+\subsection{Démarrage des générateurs et contraintes temporelles}
+
+Les contraintes de type (3.35) et (3.36) couplent des variables liées à des périodes de temps adjacentes.
+Par exemple, les contraintes de type (3.35) sont définies $\forall t \in T$. Or les valeurs des variables
+$w_{gt}$ ne sont pas connues pour $t = 0$. Nous n'avons pas fait l'hypothèse que les générateurs en question
+sont éteints en $t = 0$, et simplement retiré la première contrainte. Les contraintes sont donc définies
+$\forall t \in T \backslash \{0\}$, ce qui simplifie le problème et allège légèrement les temps d'exécution.
