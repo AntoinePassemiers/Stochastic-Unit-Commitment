@@ -46,6 +46,7 @@ def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_s
     n_iter = 0
     fitness_history = list()
     only_3_32_constraints = False
+    history = list()
     print("\tApplying evolve-and-fix heuristic...")
     while n_violated > 0 and not only_3_32_constraints and n_iter < 50:
         n_iter += 1
@@ -84,6 +85,7 @@ def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_s
 
         if verbose:
             print("\tIteration %03d - Fitness: %f" % (n_iter, fitness))
+        history.append(fitness)
 
         n_violated, _ = problem.constraints_violated()
         if fitness == last:
@@ -92,3 +94,8 @@ def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_s
     
     for var in variables[int_mask]:
         var.cat = "Integer"
+
+    plt.step(np.arange(1, len(history)+1), history)
+    plt.xlabel("Itération")
+    plt.ylabel("Fonction d'adaptation")
+    plt.savefig("round.png")

@@ -84,37 +84,35 @@ def main():
         "--alpha0",
         action="store_true",
         default=2000.0,
-        type=float,
         help="Initial subgradient steplength")
     parser.add_argument(
         "--nar",
         action="store_true",
         default=50,
-        type=int,
         help="Number of iterations without heuristic")
     parser.add_argument(
         "--rho",
         action="store_true",
         default=0.96,
-        type=float,
         help="Round solution using heuristic algorithms")
     parser.add_argument(
         "--epsilon",
         action="store_true",
         default=0.01,
-        type=float,
         help="Convergence threshold")
     args = parser.parse_args()
 
     # Parse instance file
     instance = SUPInstance.from_file(args.instance_file_path)
 
-    obj, total_time, n_violated = solve_problem(
-        instance, relax=args.relax, _round=args.round, decompose=args.decompose)
+    obj, total_time, n_violated, l_k = solve_problem(
+        instance, relax=args.relax, _round=args.round, decompose=args.decompose,
+        _epsilon=float(args.epsilon), _alpha0=float(args.alpha0),
+        _rho=float(args.rho), _nar=int(args.nar))
 
 
 if __name__ == "__main__":
-    
+    """
     folder = "../instances"
     for filename in os.listdir(folder):
         if "inst-10-12-5" in filename:
@@ -136,5 +134,5 @@ if __name__ == "__main__":
                         f.write("%s, %f, %f, %d, %f\n" % (filename, obj, total_time, n_violated, l_k))
             else:
                 print("File : " + filename + " already computed")
-    
-    # main()
+    """
+    main()
