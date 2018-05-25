@@ -65,7 +65,6 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
             L_k += P1[s].objective.value()
 
         n_violated, _ = PP.constraints_violated()
-        print("N_violated: %i" % n_violated)
 
         if L_k == LB:
             _lambda /= 2
@@ -96,8 +95,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
         if (UB - LB) / UB <= _epsilon:
             break
 
-        print("UB: %f, LB: %f" % (UB, LB))
-        print("L_hat: %f, L_k: %f" % (L_hat, L_k))
+        print("\tL_k : {:10.4f} <= LB : {:10.4f} <= L_hat : {:10.4f} <= UB : {:10.4f}".format(L_k, LB, L_hat, UB))
         squared_cons = np.sum((PI**2) * (u_k - w_k)**2 + (PI**2) * (v_k - z_k)**2)
         if squared_cons == 0 or L_hat == L_k:
             alpha_k = 0
@@ -106,8 +104,6 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
                 alpha_k = _lambda * (L_hat - L_k) / squared_cons
             else:
                 alpha_k = _alpha0 * (_rho ** k)
-        
-        print(alpha_k)
         
         lb_history.append(LB)
         ub_history.append(UB)
@@ -124,24 +120,12 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
             break
         k += 1
 
-    horiz_line_data = np.array([96941.358] * len(lb_history))
-    xs = np.arange(1, len(lb_history)+1)
-    plt.plot(xs, horiz_line_data, 'r--', label="Solution primale optimale") 
-    plt.step(xs, lb_history, label="Borne inférieure sur le primal")
-    # plt.step(xs, ub_history)
-    plt.plot(xs, dual_history, label="Valeur du dual")
-    plt.xlabel("Itération")
-    plt.ylabel("Valeur de l'objectif")
-    plt.title("Convergence de l'algorithme du sous-gradient")
-    plt.legend()
-    plt.savefig("subgradient.png")
-    plt.close()
+    n_violated, _ = PP.constraints_violated()
+    if n_violated > 0:    
+        primal_solutions = np.asarray(primal_solutions)
+        betas = np.flip(1. / np.arange(1, len(primal_solutions)+1), 0)
+        betas /= betas.sum()
+        convex_comb = (betas * primal_solutions.T).sum(axis=1)
 
-
-    primal_solutions = np.asarray(primal_solutions)
-    betas = np.flip(1. / np.arange(1, len(primal_solutions)+1), 0)
-    betas /= betas.sum()
-    convex_comb = (betas * primal_solutions.T).sum(axis=1)
-
-    PP.set_var_values(convex_comb)
+        PP.set_var_values(convex_comb)
     return PP, L_k
