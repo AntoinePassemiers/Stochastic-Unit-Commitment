@@ -50,8 +50,9 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.1, _alpha0=2000.0,
     primal_solutions = list()
     LB, UB = -np.inf, np.inf
     k = 0
+    found_integer_solution = False
     while True:
-        print("Iteration %i" % (k + 1))
+        print("Iteration %03d" % (k + 1))
         PP, P1, P2, ED, variables = decompose_problem(instance, mu, nu)
         (u, v, p, theta, w, z, e) = variables
 
@@ -81,6 +82,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.1, _alpha0=2000.0,
             n_violated, _ = PP.constraints_violated()
             if n_violated == 0:
                 L_hat = PP.objective.value()
+                found_integer_solution = True
 
         if L_hat < UB:
             UB = L_hat
@@ -93,7 +95,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.1, _alpha0=2000.0,
         if squared_cons == 0 or L_hat == L_k:
             alpha_k = 0
         else:
-            if k > _nar:
+            if k > _nar and found_integer_solution:
                 alpha_k = _lambda * (L_hat - L_k) / squared_cons
             else:
                 alpha_k = _alpha0 * (_rho ** k)

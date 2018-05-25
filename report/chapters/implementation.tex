@@ -47,17 +47,34 @@ version:
     problem += (np.swapaxes(p[:, :, 1:] - p[:, :, :-1], 0, 2) <= R_plus)
 \end{lstlisting}
 
-\section{Contenu du projet}
+\section{Contenu du dossier source}
+
+Voici comment l'implémentation du projet a été divisée:
 
 \begin{itemize}
-  \item \textit{decomposition.py}: 
-  \item \textit{dive\_and\_fix.py}:
-  \item \textit{experimental.py}:
-  \item \textit{genetic.pyx}:
-  \item \textit{instance.py}:
-  \item \textit{lp\_relaxation.py}:
-  \item \textit{main.py}:
-  \item \textit{subgradient.py}:
-  \item \textit{utils.py}:
-  \item \textit{variables.py}:
+  \item \textit{decomposition.py}: Contient l'implémentation de l'unique fonction \textit{decompose\_problem}, permettant
+  sur base d'une instance de type \textit{SUPInstance} de générer les instances des problèmes PuLP
+  nécessaires, dont le problème original (PP), les sous problèmes issus de la décomposition lagrangienne ($P1_s$ et $P2$),
+  ainsi que les problèmes de répartition économique pour chaque scénario ($ED_s$). Tous les problèmes/sous-problèmes
+  partagent les variables PuLP, ce qui permet à la résolution d'un problème de \textbf{directement mettre à jour les valeurs
+  des variables} dans les problèmes partageant ces mêmes variables, sans que nous ayons explicitement à le faire.
+  \item \textit{dive\_and\_fix.py}: Implémentation de l'heuristique dive-and-fix, que nous avons gardé malgré les mauvaises
+  performances de celle-ci.
+  \item \textit{experimental.py}: Fichier bac à sable
+  \item \textit{genetic.pyx}: Implémentation en "pur C" et parallèle d'un algorithme génétique permettant de minimiser
+  le nombre de contraintes non satisfaites pour une instance du problème.
+  \item \textit{instance.py}: Structure de données pour les constantes et indices du problème, accompagnée de fonctions
+  utilitaires pour parser les différents fichiers d'instance. Notez la différence entre une instance \textit{SUPInstance}
+  telle que définie dans ce fichier, et les instances des problèmes PuLP tels que définis à l'aide de la classe
+  \textit{SUCLpProblem} dans le fichier \textit{utils.py}.
+  \item \textit{lp\_relaxation.py}: Formulations du problème d'origine ainsi que de sa relaxation linéaire. Selon
+  la formulation désirée, le problème est renvoyé sous forme d'une instance de la classe \textit{SUCLpProblem}.
+  \item \textit{main.py}: Point d'entrée du programme et parseur de commandes
+  \item \textit{subgradient.py}: Algorithme du sous-gradient permettant de trouver une solution duale sur base
+  des sous-problèmes $P1_s$ et $P2$.
+  \item \textit{utils.py}: Problèmes PuLP et intégration de NumPy dans PuLP telle que décrite dans la section précédente.
+  \item \textit{variables.py}: Initialisation des variables nécessaires à la formulation du SUC. Les contraintes spéciales
+  (bornes sur les variables) sont implictement ajoutées au problème. Par exemple, les variables $u_{gst}$ sont supposées
+  entre comprises entre 0 et 1, et ce peu importe si la formulation choisie est le problème d'origine, la relaxation
+  linéaire ou même la décomposition lagrangienne.
 \end{itemize}
