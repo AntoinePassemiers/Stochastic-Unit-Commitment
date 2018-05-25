@@ -1,6 +1,8 @@
 \chapterwithsubtitle{Tâche 5}{Comparer les meilleures solutions obtenues (optimum et temps de résolution) avec les heuristiques, par rapport à celle trouvées avec la relaxation choisie}
 \vspace*{1.2cm}
 
+\begin{landscape}
+
 \begin{table*}[h!]\centering
 \ra{1.3}
 \begin{tabular}{@{}rrrcrrrcrrr@{}}\toprule
@@ -28,6 +30,21 @@ inst-10-12-10-1.txt & 234931.20 & 1.69 & & 273970.32 & 96.84 & x & & - & - & - \
 inst-10-12-10-2.txt & 235774.17 & 1.49 & & 252770.10 & 90.19 & x & & - & - & - \\
 inst-10-12-10-3.txt & 241277.17 & 1.43 & & 284073.02 & 80.20 & x & & - & - & - \\
 inst-10-12-10-4.txt & 235551.55 & 1.84 & & 249891.31 & 93.06 & x & & - & - & - \\
+
+\end{tabular}
+\end{table*}
+\end{landscape}
+\newpage
+
+\begin{landscape}
+
+\begin{table*}[h!]\centering
+\ra{1.3}
+\begin{tabular}{@{}rrrcrrrcrrr@{}}\toprule
+& \multicolumn{2}{c}{RL} & \phantom{abc} & \multicolumn{3}{c}{Méthode d'arrondi} & \phantom{abc} & \multicolumn{3}{c}{$\lambda$RL}\\
+\cmidrule{2-3} \cmidrule{5-7} \cmidrule{9-11}
+& Obj & Temps(s) & & Obj & Temps(s) & Admissible & & Obj & Temps(s) & Borne Inf\\ \midrule
+
 inst-10-24-5-0.txt & 478886.40 & 1.54 & & 544541.99 & 72.62 & x & & - & - & - \\
 inst-10-24-5-1.txt & 475638.19 & 1.44 & & 557913.85 & 111.23 & x & & - & - & - \\
 inst-10-24-5-2.txt & 469943.06 & 1.38 & & 526371.57 & 95.51 & x & & - & - & - \\
@@ -41,3 +58,5 @@ inst-10-24-10-4.txt & 475704.60 & 3.99 & & 539894.73 & 239.95 & x & & - & - & - 
 
 \end{tabular}
 \end{table*}
+
+\end{landscape}
