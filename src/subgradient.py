@@ -31,7 +31,7 @@ def solve_subproblem(subproblem):
         assert(subproblem.status == pulp.constants.LpStatusOptimal)
 
 
-def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0, _rho=0.92, _nar=10):
+def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0, _rho=0.96, _nar=25):
     PI, Gs, K, S, C, P_plus = instance.get_attributes(["PI", "Gs", "K", "S", "C", "P_plus"])
     n_periods = instance.n_periods
     n_scenarios = instance.n_scenarios
@@ -135,6 +135,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
     plt.title("Convergence de l'algorithme du sous-gradient")
     plt.legend()
     plt.savefig("subgradient.png")
+    plt.close()
 
 
     primal_solutions = np.asarray(primal_solutions)
@@ -143,4 +144,4 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
     convex_comb = (betas * primal_solutions.T).sum(axis=1)
 
     PP.set_var_values(convex_comb)
-    return PP
+    return PP, L_k
