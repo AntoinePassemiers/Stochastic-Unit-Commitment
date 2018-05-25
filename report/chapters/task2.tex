@@ -1,13 +1,49 @@
 \chapterwithsubtitle{Tâche 2}{Développer une heuristique qui trouve une solution entière admissible}
 \vspace*{1.2cm}
 
+Arrondir les variables binaires aux entiers les plus proches ne permet pas de trouver une solution admissible
+du primal. Il est nécessaire de trouver une heuristique menant à une solution admissible le plus proche possible
+de la solution entière optimale. L'heuristique dive-and-fix ne permet pas de trouver une telle solution
+car elle fixe des variables $u_{gst}$ de manière très disparate dans le temps (t), ce qui amène rapidement à la
+non-satisfaisabilité de certaines contraintes liées au démarrage des générateurs tels que les contraintes (3.32).
+Ces contraintes sont gênantes car elles couplent un grand nombre de variables appartenant à différentes
+périodes de temps. La solution que nous proposons est un algorithme itératif répétant les trois étapes suivantes:
+\begin{itemize}
+    \item \textbf{Résolution de la relaxation linéaire du problème}: la relaxation linéaire est celle
+    formulée dans la partie 3 du rapport.
+    \item \textbf{Minimisation du nombre de contraintes violées via un algorithme génétique}:
+    L'algorithme génétique est implémenté en Cython~\citep{behnel2010cython} afin d'améliorer la vitesse
+    d'exécution. La partie sensible du code est optimisée en pur C et parallélisée, ce qui fait que l'exécution
+    est instantanée et que le goulot d'étranglement de l'algorithme est la résolution de la relaxation linéaire
+    et dépend donc uniquement du solveur et du temps pris par PuLP pour effectuer son pré-traitement du problème.
+    Il convient donc d'installer Cython pour pouvoir bénéficier de cet algorithme. Dans le cas contraire,
+    l'exécution de notre programme peut encore se faire mais de manière limitée.
+    \item \textbf{Fixation des variables suivant des règles spécifiques au problème}:
+    Ces règles sont déterminées de manière purement empiriques, peuvent encore être améliorées ou choisie
+    plus intelligemment.
+\end{itemize}
+Nous avons modestement nommé cette heuristique "evolve-and-fix" dans notre code source.
 
+\section{Résolution de la relaxation linéaire}
+
+La solution obtenue par le solveur est infaisable pour le problème d'origine, et requiert d'être arrondie
+de manière heuristique. Les valeurs des variables sont alors extraites du problème PuLP et injectée
+dans un \textit{CyProblem} (voir \textit{src/genetic.pyx}) qui représente le problème d'origine
+dans la partie C du code. La représentation du problème du côté Python est quant à elle assurée
+par la classe \textit{SUCLpProblem} (voir \textit{src/utils.py}).
 
 \section{Algorithme génétique}
 
 L'algorithme génétique proposé a une forme très générale à l'exception qu'il génère 
 des solutions infaisables et cherche à se rapprocher de la zone admissible en diminuant
-les valeurs des contraintes non satisfaites. Décrivons chacune des composantes de l'algorithme.
+les valeurs des contraintes non satisfaites. L'implémentation se trouve dans le fichier 
+\textit{src/genetic.pyx}. Décrivons chacune des composantes de l'algorithme.
+
+\subsection{Représentation binaire des individus}
+Chaque bit correspond à l'une des variables binaires du problème d'origine.
+Le nombre de bits est donc égal au nombre de contraintes d'intégralité de l'instance du problème.
+Les variables faisant partie de la représentation binaire sont toutes les variables
+$u_{gst}$ et $w_{gt}$.
 
 \subsection{Initialisation de la population}
 
@@ -23,6 +59,25 @@ x_i =
   0 & sinon
 \end{cases}       
 \end{equation} \\
+
+La taille de la population est un paramètre que nous fixons à 100 par défaut.
+
+\subsection{Fonction d'adaptation}
+
+Deux différentes fonctions d'adaptation ont été expérimentées.
+\begin{itemize}
+    \item \textit{Somme pondérée des valeurs des contraintes}: la difficulté est d'associer à chaque
+    type de contraintes un coefficient. \'Etant donné qu'il y a près d'une dizaine de types de contraintes
+    en jeu lors de l'exécution de l'algorithme génétique (et une vingtaine dans le problème d'origine),
+    déterminer les paramètres idéaux peut prendre beaucoup de temps et l'introduction de ces paramètres
+    risquent de rendre l'heuristique trop spécifique au problème.
+    \item \textit{Nombre de contraintes violées}: cette heuristique fonctionne mieux en pratique et \textbf{ne
+    requiert aucun ajustement de paramètres}.
+\end{itemize}
+
+Les contraintes intervenant dans le calcul de la fonction d'adaptation sont les suivantes:
+(3.25), (3.26), (3.29), (3.30), (3.31), (3.32), (3.35), (3.36), (3.37). En effet toutes les autres contraintes
+voient leur valeur inchangée durant l'exécution de l'algorithme génétique.
 
 \subsection{Tournois et sélection des parents}
 
@@ -51,16 +106,10 @@ où $c_i$ est le ième bit de $c$ (la valeur de la ième variable de $c$ sur laq
 contrainte d'intégralité),
 $a_i$ et $b_i$ sont les ièmes bits des parents $a$ et $b$, respectivement.
 
-\subsection{Mutation operator}
+\subsection{Opérateur de mutation}
 
-Crossover operator corresponds to function \textit{crossover} in the source code and randomly
-flips \textit{mutation\_rate} bits in the string representation of the solution.
-In other words, the randomly selected items are added to current solution if they are not already
-present and vice versa.
-\textit{mutation\_rate} is a hyper-parameter and its defaut value has been set to 2 in accordance
-with the original paper. However, solutions produced by crossover and mutation operators are
-not ensured to be feasible. As a consequence, a repair operator had to be implemented in order
-to redirect generated solutions to the feasible region.
+L'opérateur de mutation inverse aléatoirement certains bits dans la représentation binaire
+de l'individu fils. Le taux de mutation est un paramètre que nous fixons à 2 par défaut.
 
 \begin{algorithm}[H]
 \caption{Algorithme génétique pour le problème SUC}
@@ -89,7 +138,55 @@ to redirect generated solutions to the feasible region.
 \end{algorithmic}
 \end{algorithm}
 
-\section{TODO}
+\section{Fixation de variables}
+
+Si l'algorithme génétique ne renvoit pas de solution admissible, l'étape suivante consiste
+à sacrifier une partie de l'objectif en augmentant les coûts, créant une marge et permettant
+à l'algorithme génétique de satisfaire plus de contraintes à l'itération suivante.
+
+\begin{itemize}
+    \item Si une contrainte de type (3.26) est non satisfaite, alors la variable $p_{gst}$
+    impliquée est fixée à $P_{gs}^{+}$. Ceci permet de créer de la marge pour changer les
+    quantités produites par les autres générateurs tout en satisfaisant les mêmes
+    demandes d'énergie.
+    \item Si une contrainte de type (3.25) est non satisfaite, alors la variable $u_{gst}$
+    impliquée est fixée à 1. Ceci permet de forcer la production lors de la résolution
+    de la relaxation linéaire de l'itération suivante. Ceci rejoint l'idée du point présent
+    et est nécessaire pour la concrétiser car une variable $u_{gst}$ à 0 force la production
+    $p_{gst}$ à 0.
+    \item Si une contrainte de type (3.36) est non satisfaite, alors la variable $v_{gst}$
+    impliquée est fixée à 1 avec une probabilité $(u_{gst} - u_{gs,t-1} - v_{gst}) / 2$.
+    L'ajout du caractère aléatoire à la fixation permet simplement de limiter le nombre de
+    variables fixées et d'éviter de violer une des contraintes temporelles
+    (3.29), (3.30), (3.31) ou (3.32) trop rapidement. Il est clair que ce choix est arbitraire
+    et peut être abandonné au profit d'une approche plus "dive-and-fix" en fixant uniquement
+    la variable $v_{gst}$ la moins fractionnaire. Cependant, la fixation d'une seule variable
+    par itération rend l'exécution du programme significativement plus longue et rend l'utilisation
+    d'une heuristique injustifiée lorsque la résolution du problème d'origine via le solveur
+    est plus rapide.
+    \item Si une contrainte de type (3.35) est non satisfaite, alors la variable $z_{gt}$
+    impliquée est fixée à 1 avec une probabilité $(w_{gt} - w_{g,t-1} - z_{gt}) / 2$.
+    \item Si une contrainte de type (3.29), (3.30), (3.31) ou (3.32) est non satisfaite et
+    aucune contrainte de type (3.26), (3.25), (3.36) ou (3.35) est violée, alors l'heuristique
+    échoue.
+    \item Enfin, les variables les plus susceptibles de violer les contraintes de type
+    (3.26), (3.25), (3.36) ou (3.35) sont fixées en dernier, ce qui est illustré
+    clairement dans la section suivante.
+\end{itemize}
+
+\section{Vue générale de l'algorithme}
+
+Il est important de noter que l'heuristique échoue sur des instances difficiles lorsqu'appliquée
+directement sur une solution obtenue par relaxation linéaire. Nous imaginons que le cheminement
+de la solution optimale de la relaxation vers la zone admissible du primal n'est pas trivial
+et nécessite des améliorations au niveau de la fixation de variables.
+\textbf{L'algorithme proposé ne garantit donc aucune solution faisable et peut échouer}.
+Cependant, une solution primale est trouvée dans tous les cas lorsque l'heuristique
+est appliquée sur une solution obtenue avec l'algorithme du sous-gradient (voir partie 3) et une
+séquence ergodique (voir partie 4).
+
+Le graphique suivant reprend l'ensemble du fonctionnement d'\textit{evolve-and-fix}, tout en montrant comment
+la difficulté introduite par la fixation des différents types de variables est pris en compte.
 
 \begin{figure}[h!]
     \begin{center}
