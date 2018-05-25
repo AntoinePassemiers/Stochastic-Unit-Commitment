@@ -37,6 +37,10 @@ def evolve_and_fix(problem):
     n_mutations = 2
     pop_size = 100
 
+
+    for var in variables[int_mask]:
+        var.cat = "Continuous"
+
     rounded, fitness = cp.round(solution, int_mask, max_n_iter=max_n_iter,
         part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
     problem.set_var_values(rounded)
@@ -89,6 +93,9 @@ def evolve_and_fix(problem):
             stage += 1
         last = fitness
     
+    for var in variables[int_mask]:
+        var.cat = "Integer"
+
     """
     if n_violated == -1:
         print("[Warning] Evolve-and-fix heuristic failed")
