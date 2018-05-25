@@ -32,7 +32,6 @@ def solve_problem(instance, relax=True, _round=False, decompose=False,
     exec_time = time.time() - start
     obj = problem.objective.value()
     print("Solve time: %f s" % exec_time)
-    print("Problem status: %s" % pulp.LpStatus[problem.status])
     if problem.status == pulp.constants.LpStatusOptimal:
         print("Value of the objective: %f" % obj)
 
@@ -82,22 +81,18 @@ def main():
         help="Round solution using heuristic algorithms")
     parser.add_argument(
         "--alpha0",
-        action="store_true",
         default=2000.0,
         help="Initial subgradient steplength")
     parser.add_argument(
         "--nar",
-        action="store_true",
         default=50,
         help="Number of iterations without heuristic")
     parser.add_argument(
         "--rho",
-        action="store_true",
         default=0.96,
         help="Round solution using heuristic algorithms")
     parser.add_argument(
         "--epsilon",
-        action="store_true",
         default=0.01,
         help="Convergence threshold")
     args = parser.parse_args()
@@ -112,27 +107,4 @@ def main():
 
 
 if __name__ == "__main__":
-    """
-    folder = "../instances"
-    for filename in os.listdir(folder):
-        if "inst-10-12-5" in filename:
-            print(filename)
-            with open("results.txt", "r") as f:
-                filenames = [line.split(",")[0] for line in f.readlines()]
-                
-            if(filename not in filenames):
-
-                filepath = os.path.join(folder, filename)
-                instance = SUPInstance.from_file(filepath)
-
-                obj, total_time, n_violated = solve_problem(instance, relax=True, _round=True, decompose=True)
-
-                with open("results.txt", "a") as f:
-                    if l_k is None:
-                        f.write("%s, %f, %f, %d\n" % (filename, obj, total_time, n_violated))
-                    else:
-                        f.write("%s, %f, %f, %d, %f\n" % (filename, obj, total_time, n_violated, l_k))
-            else:
-                print("File : " + filename + " already computed")
-    """
     main()
