@@ -23,8 +23,9 @@ def solve_problem(instance, relax=True, _round=False, decompose=False):
         problem, (u, v, p, theta, w, z, e) = create_formulation(instance, relax=relax)
         # Solve LP relaxation
         problem.solve()
+        l_k = None
     else:
-        problem = solve_with_subgradient(instance)
+        problem, l_k = solve_with_subgradient(instance)
         evolve_and_fix(problem)
     exec_time = time.time() - start
     obj = problem.objective.value()
@@ -60,7 +61,7 @@ def solve_problem(instance, relax=True, _round=False, decompose=False):
         f.write("Value of the objective: %f\n" % problem.objective.value())
         for variable in problem.variables():
             f.write("%s = %s\n" % (str(variable.name), str(variable.varValue)))
-    return obj, total_time, n_violated
+    return obj, total_time, n_violated, l_k
 
 
 def main():
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     
     folder = "../instances"
     for filename in os.listdir(folder):
-        if "inst-10-6-5" in filename:
+        if "inst-10-12-5" in filename:
             print(filename)
             with open("results.txt", "r") as f:
                 filenames = [line.split(",")[0] for line in f.readlines()]
@@ -103,10 +104,13 @@ if __name__ == "__main__":
                 filepath = os.path.join(folder, filename)
                 instance = SUPInstance.from_file(filepath)
 
-                obj, total_time, n_violated = solve_problem(instance, relax=True, _round="evolve-and-fix", decompose=True)
+                obj, total_time, n_violated, l_k = solve_problem(instance, relax=True, _round="evolve-and-fix", decompose=True)
 
                 with open("results.txt", "a") as f:
-                    f.write("%s, %f, %f, %d\n" % (filename, obj, total_time, n_violated))
+                    if l_k is None:
+                        f.write("%s, %f, %f, %d\n" % (filename, obj, total_time, n_violated))
+                    else:
+                        f.write("%s, %f, %f, %d, %f\n" % (filename, obj, total_time, n_violated, l_k))
             else:
                 print("File : " + filename + " already computed")
     
