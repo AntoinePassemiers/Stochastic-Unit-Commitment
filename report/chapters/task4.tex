@@ -43,12 +43,12 @@ Tant qu'aucune solution admissible n'est disponible, le pas est calculé via la 
 \subsubsection{Calcul du pas sur base d'une borne supérieure}
 
 Une façon naïve de calculer une borne supérieure rapidement est de fixer les variables
-$u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$ à leurs valeurs maximales respectives.
+$u_{gst}, v_{gst}, p_{gst}$ $\ \forall g \in G, s \in S, t \in T$ à leurs valeurs maximales respectives.
 Il est assez clair que la solution correspondante devient infaisable et que seules les contraintes 
 $(3.25), (3.33), (3.34), (3.39), (3.40)$ sont garanties d'être satisfaites. Par exemple, certaines contraintes $(3.36)$ cessent d'être satisfaites
 car il n'est pas possible d'allumer un générateur deux fois d'affilée. Cependant, la valeur de l'objectif constitue une borne supérieure
 car toute solution faisable nécessite d'abaisser la valeur d'une des variables $u_{gst}, v_{gst}, p_{gst} \ \forall g \in G, s \in S, t \in T$
-afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut valoir un multiple de l'objectif de la solution optimale}.
+afin de satisfaire les contraintes restantes. En revanche cette borne est très mauvaise et \textbf{peut atteindre une valeur considérablement plus grande que l'objectif de la solution optimale}.
 Cette borne $WUB$ est calculée ainsi:
 \begin{equation}
     WUB = \sum\limits_{g \in G} \sum\limits_{s \in S} \sum\limits_{t \in T} \pi_s (K_g + S_g + C_g P_{gs}^{+})
@@ -64,8 +64,8 @@ des objectifs des solutions primales trouvées heuristiquement.
 \begin{algorithmic}[1]
 \Procedure{solve\_with\_subgradient}{}
 \State $k \leftarrow 0$
-\State $UB = \leftarrow WUB, \ LB = -\infty$ 
-\State $\mu_{gst} = 0 \ , \ nu_{gst} = 0 \ \ \forall g \in G, s \in S, t \in T$
+\State $UB \leftarrow WUB, \ LB \leftarrow -\infty$ 
+\State $\mu_{gst} \leftarrow 0 \ , \ nu_{gst} \leftarrow 0 \ \ \forall g \in G, s \in S, t \in T$
 \While {$\frac{(UB - LB)}{UB} \le \epsilon$}
 \State Résoudre les sous-problèmes $P2$ et $P1_s \ \forall s \in S$
 \State $L_k \leftarrow $ \ somme des objectifs des différents sous-problèmes
@@ -73,21 +73,21 @@ des objectifs des solutions primales trouvées heuristiquement.
 \State $\lambda \leftarrow \lambda / 2$
 \EndIf
 \If {$L_k > LB$}
-\State $LB = L_k$
+\State $LB \leftarrow L_k$
 \EndIf
 \If {$k > n_{ar}$}
 \State Somme ergodique $\overline{x}^k$ de toutes les solutions primales infaisables obtenues
 \State Obtenir une solution primale admissible de manière heuristique depuis $\overline{x}^k$
 \EndIf
 \If {$\hat{L} < UB$}
-\State $UB = \hat{L}$
+\State $UB \leftarrow \hat{L}$
 \EndIf
 \If {$k > n_{ar}$ et une solution admissible a été trouvée}
 \State $\alpha_k = \frac{\lambda (\hat{L} - L^k)}{\sum\limits_{g \in G_s} \sum\limits_{s \in S} \sum\limits_{t \in T} \big(\pi_s^2 \ (u_{gst}^k - w_{gt}^k)^2 + \pi_s^2 \ (v_{gst}^k - z_{gt}^k)^2\big)}$
 \Else
 \State $\alpha_k = \alpha_0 \ \rho^k$
 \EndIf
-\State Mise à jour des multiplicateurs $\mu_{gst}, \nu{gst} \ \ \forall g \in G, s \in S, t \in T$
+\State Mise à jour des multiplicateurs $\mu_{gst}, \nu_{gst} \ \ \forall g \in G, s \in S, t \in T$
 \State $k \leftarrow k + 1$
 \EndWhile
 \EndProcedure
