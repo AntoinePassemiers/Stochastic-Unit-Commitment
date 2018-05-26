@@ -8,7 +8,6 @@ from heuristics import evolve_and_fix
 import pulp
 import time
 import numpy as np
-
 import matplotlib.pyplot as plt
 
 

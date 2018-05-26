@@ -17,6 +17,32 @@ import pulp
 
 def solve_problem(instance, relax=True, _round=False, decompose=False, 
         _epsilon=0.01, _alpha0=5000.0, _rho=0.92, _nar=10):
+    """ Solve a SUC problem instance given instance constants.
+
+    Returns the value of the objective function, the total execution
+    time, the number of violated constraints (if there are any),
+    and the value of the lagrangian dual (if lagrangian decomposition
+    is used).
+
+    Args:
+        instance (SUPInstance):
+            Constants of the problem instance
+        relax (bool, optional):
+            Whether to solve the linear relaxation of the problem
+        _round (bool, optional):
+            Whether to apply rounding heuristic at the end of the process
+        _decompose (bool, optional):
+            Whether to solve the lagrangian decomposition of the problem
+            using subgradient method
+        _lambda (float, optional):
+            Constant control parameter for the dynamic steplength
+        _epsilon (float, optional):
+            Convergence threshold of subgradient method
+        _alpha0 (float, optional):
+            Initial subgradient steplength
+        _nar (float, int):
+            Number of subgradient iterations without primal recovery
+    """
     print("Solving problem...")
     start = time.time()
     if not decompose:
@@ -36,6 +62,7 @@ def solve_problem(instance, relax=True, _round=False, decompose=False,
         print("Value of the objective: %f" % obj)
 
     if _round:
+        # Use 'evolve-an-fix' heuristic
         heuristic_start = time.time()
         evolve_and_fix(problem)
         print("Rounding time: %f s" % (time.time() - heuristic_start))
@@ -51,7 +78,6 @@ def solve_problem(instance, relax=True, _round=False, decompose=False,
     if problem.is_integer_solution() and n_violated == 0:
         print("Found feasible solution to the original primal problem.")
         print("Value of the objective: %f" % problem.objective.value())
-
     total_time = time.time() - start
 
     with open("solution.txt", "w") as f:
