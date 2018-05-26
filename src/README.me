@@ -1,0 +1,26 @@
+
+Les différents paramètres de l'algorithme du sous-gradient sont les suivants:
+	- nar: le nombre d'itérations du sous-gradient à effectuer avant de commencer à appliquer l'heuristique et obtenir des solutions primales faisables.
+	- epsilon: Seuil de convergence / saut de dualité en dessous duquel l'algorithme est considéré comme ayant convergé. Lorsque $(UB - LB) / UB  < \epsilon$, l'algorithme s'arrête.
+	- alpha0: Le pas initial du sous-gradient.
+	- rho: Le facteur de diminution du pas (si aucune solution primale admissible n'a encore été trouvée).
+
+
+# Résolution du primal
+  
+  $ python main.py <path_to_instance>
+  
+# Résolution de la relaxation linéaire
+
+  $ python main.py <path_to_instance> --relax
+
+# Résolution de la relaxation linéaire + arrondi
+  
+  $ python main.py <path_to_instance> --relax --round
+
+# Décomposition lagrangienne et méthode du sous-gradient
+  $ python main.py <path_to_instance> --decompose
+  $ python main.py <path_to_instance> --decompose --nar 6 --epsilon 0.01 --alpha0 2000 --rho 0.96
+
+
+
