@@ -2,12 +2,78 @@
 \vspace*{1.2cm}
 
 
+\section{Convergence d'evolve-and-fix (tâche 2)}
+
+Comme expliqué dans la partie portant sur la tâche 2 du projet, 
+l'heuristique proposée fonctionne principalement sur des instances de très petite
+taille et nécessite de fixer les variables de manière plus stratégique afin
+d'éviter de violer les contraintes liées aux démarrages des générateurs
+(de type 3.32 entre autres).
+
 \begin{figure}[h!]
 \begin{center}
 	\includegraphics[width=.5\textwidth]{imgs/round}
-	\caption{TODO}
+	\caption{\'Evolution de la fonction d'adaptation calculée par evolve-and-fix
+    sur l'instance \textit{inst-10-6-5-0.txt} - Méthode d'arrondi de la solution
+    obtenue par la relaxation linéaire: Pour cette l'instance, le nombre de contraintes
+    non satisfaites tombe rapidement à 0, permettant à l'heuristique de renvoyer
+    une solution admissible.}
 \end{center}
 \end{figure}
+
+Cependant, l'heuristique a l'avantage de ne posséder aucun paramètre si ce n'est ceux
+de l'algorithme génétique, qui quant à eux peuvent être laissés à leurs valeurs par
+défaut. En effet, les résultats obtenus sont fort robustes à l'ajustement des paramètres.
+Les valeurs par défaut sont les suivantes:
+\begin{itemize}
+    \item Taille de la population: 100
+    \item Nombre d'individus lors d'un tournoi: 2
+    \item Taux de mutation: 2
+    \item Nombre maximum d'itérations: 100000
+\end{itemize}
+
+\section{Convergence du sous-gradient (tâches 3 et 4)}
+
+Il est important de noter qu'evolve-and-fix trouve une solution plus aisément lorsqu'appliqué
+à une solution proche de la zone admissible, en particuler la somme ergodique d'une (de préférence
+longue) série de solutions primales non-faisables.
+
+\begin{figure}[h!]
+\begin{center}
+    \includegraphics[width=.5\textwidth]{imgs/subgradient}
+    \caption{Convergence du sous-gradient pour l'instance \textit{inst-10-6-5-0.txt}:
+    Pour cette instance, la solution optimale du primal a été retrouvée.}
+\end{center}
+\end{figure}
+
+Sur les plus petites instances fournies, le temps requis pour trouver la solution optimale du problème
+d'origine (sans relaxation ni heuristique) est largement inférieur à celui pris par le sous-gradient
+pour converger et trouver la solution optimale. Ce phénomène s'estompt rapidement lorsque la taille
+du problème augmente (que ce soit par son nombre de scénarios, son nombre de générateurs ou son nombre
+de périodes de temps). Il y a donc intérêt à utiliser la décomposition lagrangienne lorsque le problème
+gagne en difficulté. De plus, les temps que nous avons mesuré ne tiennent pas compte de la nature
+parallèle de la décomposition.
+
+En effet nous avons fait le choix de \textbf{ne pas simuler la distribution de l'algorithme du sous-gradient}
+car PuLP ne gère pas le parallélisme et est sujet à de nombreux bugs lorsqu'il est confronté au multiprocessing
+sur une seule machine. Le gain potentiel de vitesse qu'il reste possible d'obtenir est considérable et est
+d'au plus le nombre de scénarios du problème.
+
+\section{Résultats}
+
+Les deux tableaux qui suivent reprennent les solutions trouvées avec les différentes méthodes,
+ainsi que les temps d'exécution. \textit{RL} fait référence à la relaxation linéaire:
+la valeur de l'objectif correspondant n'est donc pas celui du problème d'origine mais de la
+relaxation elle-même et est donc inférieure à la solution optimale.
+Les solutions optimales des problèmes d'origine n'ont pas été reprises dans les résultats car, bien
+que très rapides à calculer pour les plus petites instances, elles peuvent prendre un temps
+démentiel sur certaines des instances utilisées.
+
+\textit{$\lambda$RL} fait référence à la relaxation lagrangienne: la valeur de l'objectif est donc
+celui de la solution primale obtenue de manière heuristique sur base de la dernière itération
+de la méthode du sous-gradient. La colonne \textit{dual} donne à titre indicatif la dernière valeur obtenue
+pour le dual lagrangien. Notons qu'il ne s'agit pas de la borne inférieure du primal et donc pas de la
+meilleure valeur pour le dual.
 
 \begin{landscape}
 
@@ -19,15 +85,15 @@
 & Obj & Temps(s) & & Obj & Temps(s) & Admissible & & Obj & Temps(s) & Dual\\ \midrule
 
 inst-10-6-5-0.txt & 91174.75 & 0.33 & & 94480.54 & 31.53 & - & & \textbf{92441.36} & 78.55 & \textbf{92441.36} \\
-inst-10-6-5-1.txt & 90652.18 & 0.30 & & 94580.37 & 30.45 & oui & & 94586.44 & 111.31 & 89934.03 \\
+inst-10-6-5-1.txt & 90652.18 & 0.30 & & 94580.37 & 30.45 & oui & & 94580.37 & 111.31 & 91886.78 \\
 inst-10-6-5-2.txt & 89810.63 & 0.28 & & 94891.98 & 5.42 & - & & - & - & -  \\
-inst-10-6-5-3.txt & 91470.78 & 0.34 & & 103855.17 & 30.70 & - & & 110493.46 & 175.85 & 92063.03 \\
-inst-10-6-5-4.txt & 91547.35 & 0.34 & & 101224.54 & 29.72 & - & & 101045.84 & 111.93 & 92908.99 \\
-inst-10-6-10-0.txt & 90751.45 & 0.76 & & 93219.45 & 17.31 & oui & & 93150.63 & 75.36 & 91499.47 \\
-inst-10-6-10-1.txt & 89549.23 & 0.68 & & 98493.06 & 48.37 & - & & 98116.36 & 278.04 & 90173.95 \\
-inst-10-6-10-2.txt & 90286.37 & 0.66 & & 95190.96 & 44.08 & oui & & 95190.96 & 368.12 & 90934.94 \\
-inst-10-6-10-3.txt & 91200.85 & 0.53 & & 95188.59 & 18.26 & oui & & 95186.16 & 121.70 & 92229.37 \\
-inst-10-6-10-4.txt & 90726.53 & 0.67 & & 94696.54 & 49.17 & - & & 95502.14 & 192.91 & 90988.36 \\
+inst-10-6-5-3.txt & 91470.78 & 0.34 & & 103855.17 & 30.70 & - & & \textbf{92685.26} & 56.85 & \textbf{92685.26} \\
+inst-10-6-5-4.txt & 91547.35 & 0.34 & & 101224.54 & 29.72 & - & & \textbf{92908.99} & 28.64 & \textbf{92908.99} \\
+inst-10-6-10-0.txt & 90751.45 & 0.76 & & 93219.45 & 17.31 & oui & & \textbf{91499.47} & 27.36 & \textbf{91499.47} \\
+inst-10-6-10-1.txt & 89549.23 & 0.68 & & 98493.06 & 48.37 & - & & \textbf{90476.24} & 174.04 & \textbf{90476.24} \\
+inst-10-6-10-2.txt & 90286.37 & 0.66 & & 95190.96 & 44.08 & oui & & \textbf{90934.95} & 164.12 & \textbf{90934.95} \\
+inst-10-6-10-3.txt & 91200.85 & 0.53 & & 95188.59 & 18.26 & oui & & \textbf{92549.49} & 62.70 & \textbf{92549.49} \\
+inst-10-6-10-4.txt & 90726.53 & 0.67 & & 94696.54 & 49.17 & - & & 94693.54 & 192.91 & 92131.74 \\
 inst-10-12-5-0.txt & 236718.61 & 0.69 & & 255901.57 & 37.68 & - & & - & - & - \\
 inst-10-12-5-1.txt & 234103.99 & 0.74 & & 263560.52 & 27.64 & - & & - & - & - \\
 inst-10-12-5-2.txt & 243033.56 & 0.82 & & 271783.36 & 42.32 & - & & - & - & - \\
