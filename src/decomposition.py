@@ -12,15 +12,30 @@ import pulp
 
 
 def decompose_problem(instance, mu, nu):
+    """ Create instance of the original problem, the subproblems of
+    the lagrangian decomposition, and the economic dispatch associated to each scenario.
+
+    Args:
+        instance (SUPInstance):
+            stores constants and indices that are part of the problem instance
+        mu (np.ndarray):
+            Lagrange multipliers mu
+        nu (np.ndarray):
+            Lagrange multipliers nu
+    """
+    # Get set sizes
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
     n_generators, n_periods, n_lines, n_nodes = G, T, L, N
 
+    # Get indices arrays
     (Gs, Gf, Gn, LIn, LOn, IG, LI_indices, LO_indices, \
         L_node_indices) = instance.get_indices()
 
+    # Get problem constants
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
         
+    # Initialize PuLP variables
     (u, v, p, theta, w, z, e) = variables = init_variables(
         Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=False)
 

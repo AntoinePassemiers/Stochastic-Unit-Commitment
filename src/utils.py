@@ -35,6 +35,15 @@ def lp_array(name, shape, var_type, low_bound=None, up_bound=None):
     
 
 class LpArray(np.ndarray):
+    """ PuLP-compatible NumPy array. This extended array
+    is able to contain either PuLP variables or constraints.
+    Vectorized arithmetical and logical operations are supported
+    and produce new arrays of variables/constraints.
+
+    Args:
+        input_array (np.ndarray):
+            Regular NumPy array containing references to PuLP variables
+    """
 
     def __new__(cls, input_array, info=None):
         obj = np.asarray(input_array).view(cls)
@@ -147,13 +156,6 @@ class SUCLpProblem(pulp.LpProblem):
                 groups_n_violated[self.groups[i]] = [0, 0]
             constraint = self.constraints[name]
             if not (constraint.valid() or abs(constraint.value()) < eps):
-                """
-                if self.groups[i] == "3.36": # TO REMOVE
-                    print(constraint)
-                    values = {var.name: var.varValue for var in constraint.keys()}
-                    print(values)
-                """
-
                 n_violated += 1
                 if self.groups[i] in groups_n_violated.keys():
                     groups_n_violated[self.groups[i]][0] += 1
@@ -205,46 +207,3 @@ class SUCLpProblem(pulp.LpProblem):
 
     def set_var_values(self, values):
         LpArray(self.variables(), info={"var_type" : "Mixed"}).set_var_values(values)
-    
-
-if __name__ == "__main__":
-    """
-    prob = SUCLpProblem("The fancy indexing problem", pulp.LpMinimize)
-
-    X = lp_array("X", (5, 5), "Continuous", up_bound=80)
-    Y = lp_array("Y", (7, 5, 5), "Continuous", up_bound=500)
-
-
-    prob += (1.4*X[:, 2] <= [8, 7, 6, 5, 4])
-    prob += (X[0, :] >= 8)
-    prob += (0 <= X[1, :] + 2.5)
-    prob += (X[2, 1] <= X[3, 4] - X[4, 4]*4.5)
-    prob += (X[:, 0] * [1, 2, 3, 4, 5] <= 1)
-
-    prob += (4*X[:, :] + 9*Y[3, :, :] <= 2*Y[2, :, :] + 7)
-    prob += (X.sum() == 8)
-
-    for name in prob.constraints:
-        print(prob.constraints[name])
-
-    #print(sum(X))
-    """
-
-    x = pulp.LpVariable("x", lowBound=0, upBound=0.9, cat="Continuous")
-
-    problem = pulp.LpProblem("qskjd", pulp.LpMaximize)
-
-    problem += 2*x
-
-    constraint = (0.5*x <= 0.1)
-    problem += constraint
-
-    problem.solve()
-
-    print(dir(constraint))
-
-    print(constraint.valid())
-
-    print(constraint.values())
-
-

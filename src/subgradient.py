@@ -146,6 +146,7 @@ def solve_with_subgradient(instance, _lambda=0.01, _epsilon=0.01, _alpha0=5000.0
         mu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (w_k - u_k), 2, 1)
         nu[Gs, :, :] -= alpha_k * np.swapaxes(PI * (z_k - v_k), 2, 1)
 
+        n_violated, _ = PP.constraints_violated()
         if n_violated == 0 or alpha_k == 0:
             print("Feasible primal solution found")
             break

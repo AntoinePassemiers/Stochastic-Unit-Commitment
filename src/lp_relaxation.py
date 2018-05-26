@@ -11,16 +11,31 @@ import pulp
 
 
 def create_formulation(instance, variables=None, relax=True):
+    """ Create instance of the original problem, with relaxed integrality
+    constraints, if requested.
+
+    Args:
+        instance (SUPInstance):
+            stores constants and indices that are part of the problem instance
+        variables (tuple, optional):
+            Tuple of LpArray objects. If not provided, new PuLP variables
+            will be initialized.
+        relax (bool, optional):
+            Whether to relax integrality constraints
+    """
+    # Get set sizes
     (G, n_scenarios, T, L, N, n_import_groups) = instance.get_sizes()
     n_generators, n_periods, n_lines, n_nodes = G, T, L, N
 
+    # Get indices arrays
     (Gs, Gf, Gn, LIn, LOn, IG, LI_indices, LO_indices, \
         L_node_indices) = instance.get_indices()
     
-
+    # Get problem constants
     (PI, K, S, C, D, P_plus, P_minus, R_plus, R_minus, \
         UT, DT, T_req, F_req, B, TC, FR, IC, GAMMA) = instance.get_constants()
 
+    # Initialize PuLP variables if not provided
     if variables is None:
         variables = init_variables(
             Gs, Gf, n_scenarios, T, N, L, n_import_groups, relax=relax)
