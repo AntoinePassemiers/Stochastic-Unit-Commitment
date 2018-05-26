@@ -25,7 +25,27 @@ if not EF_AVAILABLE:
 
 
 def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_size=100, verbose=True):
+    """ Apply custom heuristic 'evolve-and-fix' on the current problem instance with its
+    current variable values.
+
+    Args:
+        problem (SUCLpProblem):
+            Instance of the original problem
+        max_n_iter (int, optional):
+            Maximum number of iterations of the genetic algorithm (GA)
+        part_size (int, optional):
+            Partition size of GA (must be < pop_size // 2)
+        n_mutations (int, optional):
+            Number of mutations to apply to each newly created solution/individual
+        pop_size (int, optional):
+            Population size
+        verbose (bool, optional):
+            Whether to display all outputs
+    """
     assert(EF_AVAILABLE)
+
+    # Get information that is necessary to reconstruct the problem instance
+    # from the cython side of the code
     variables = problem.get_variables()
     int_mask = [var.name[0] in RELAXED_VARIABLES for var in variables]
     solution = problem.get_var_values()
@@ -33,9 +53,11 @@ def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_s
         groups=["3.25", "3.26", "3.29", "3.30", "3.31", "3.32", "3.35", "3.36", "3.37"])
     cp = genetic.CyProblem(cy_constraints)
 
+    # Relax the integrality constraints
     for var in variables[int_mask]:
         var.cat = "Continuous"
 
+    # Round solution using genetic algorithm
     rounded, fitness = cp.round(solution, int_mask, max_n_iter=max_n_iter,
         part_size=part_size, n_mutations=n_mutations, pop_size=pop_size)
     problem.set_var_values(rounded)
@@ -92,5 +114,6 @@ def evolve_and_fix(problem, max_n_iter=100000, part_size=2, n_mutations=2, pop_s
             stage += 1
         last = fitness
     
+    # Cancel the relaxation of the integrality constraints
     for var in variables[int_mask]:
         var.cat = "Integer"
